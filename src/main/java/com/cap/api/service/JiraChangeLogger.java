@@ -2,12 +2,16 @@ package com.cap.api.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JiraChangeLogger {
+
+    private static final Logger log = LoggerFactory.getLogger(JiraChangeLogger.class);
     private static final String CHANGE_LOG_FILE = "jira_update.txt";
 
     public static void logJiraChanges(String previousJson, String currentJson) {
@@ -18,14 +22,14 @@ public class JiraChangeLogger {
                 for (String change : changes) {
                     sb.append(change).append("\n");
                 }
-                System.out.println("[JiraChangeLogger] Writing change log to: " + CHANGE_LOG_FILE);
-                System.out.println("[JiraChangeLogger] Change log contents:\n" + sb.toString());
+                log.info("[JiraChangeLogger] Writing change log to: {}", CHANGE_LOG_FILE);
+                log.info("[JiraChangeLogger] Change log contents:\n{}", sb.toString());
                 Files.write(Path.of(CHANGE_LOG_FILE), sb.toString().getBytes());
             } else {
-                System.out.println("[JiraChangeLogger] No changes detected, no file written.");
+                log.info("[JiraChangeLogger] No changes detected, no file written.");
             }
         } catch (Exception e) {
-            System.out.println("Failed to log Jira changes: " + e.getMessage());
+            log.error("Failed to log Jira changes: {}", e.getMessage(), e);
             e.printStackTrace();
         }
     }
@@ -150,7 +154,7 @@ public class JiraChangeLogger {
             }
         } catch (Exception e) {
             // Ignore parse errors
-            System.out.println("Error parsing JSON: " + e.getMessage());
+            log.error("Error parsing JSON: {}", e.getMessage(), e);
         }
         return changes;
     }

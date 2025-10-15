@@ -7,9 +7,13 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 public class GitHubApiController {
+
+    private static final Logger log = LoggerFactory.getLogger(GitHubApiController.class);
 
     @Autowired
     private OAuth2AuthorizedClientService authorizedClientService;
@@ -17,16 +21,16 @@ public class GitHubApiController {
     @GetMapping({"/github/repos", "/mcp/github/repos"})
     @ResponseBody
     public ResponseEntity<String> getRepos(OAuth2AuthenticationToken authentication) throws Exception {
-        System.out.println("[GitHubApiController] /github/repos called");
+        log.info("[GitHubApiController] /github/repos called");
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
             authentication.getAuthorizedClientRegistrationId(),
             authentication.getName());
         if (client == null || client.getAccessToken() == null) {
-            System.out.println("[GitHubApiController] No OAuth2 token found.");
+                log.warn("[GitHubApiController] No OAuth2 token found.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No OAuth2 token found.");
         }
         String githubToken = client.getAccessToken().getTokenValue();
-        System.out.println("[GitHubApiController] Using OAuth2 token: " + githubToken);
+            log.info("[GitHubApiController] Using OAuth2 token: {}", githubToken);
 
         String githubApiUrl = "https://api.github.com/user/repos";
         HttpHeaders headers = new HttpHeaders();
@@ -36,8 +40,8 @@ public class GitHubApiController {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> githubApiResponse = restTemplate.exchange(githubApiUrl, HttpMethod.GET, entity, String.class);
 
-        System.out.println("[GitHubApiController] GitHub API status: " + githubApiResponse.getStatusCode());
-        System.out.println("[GitHubApiController] GitHub API response: " + githubApiResponse.getBody());
+        log.info("[GitHubApiController] GitHub API status: {}", githubApiResponse.getStatusCode());
+        log.info("[GitHubApiController] GitHub API response: {}", githubApiResponse.getBody());
 
         String githubApiResponseBody = githubApiResponse.getBody();
         StringBuilder formatted = new StringBuilder();
@@ -61,7 +65,7 @@ public class GitHubApiController {
     @GetMapping("/jira/me")
     @ResponseBody
     public ResponseEntity<String> getJiraMe(OAuth2AuthenticationToken authentication) throws Exception {
-        System.out.println("[GitHubApiController] /jira/me called");
+            log.info("[GitHubApiController] /jira/me called");
         if (!"jira".equals(authentication.getAuthorizedClientRegistrationId())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Not authenticated with Jira. <a href=\"/oauth2/authorization/jira\">Login with Jira</a>");
@@ -70,11 +74,11 @@ public class GitHubApiController {
             "jira",
             authentication.getName());
         if (client == null || client.getAccessToken() == null) {
-            System.out.println("[GitHubApiController] No Jira OAuth2 token found.");
+                log.warn("[GitHubApiController] No Jira OAuth2 token found.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No Jira OAuth2 token found.");
         }
         String jiraToken = client.getAccessToken().getTokenValue();
-        System.out.println("[GitHubApiController] Using Jira OAuth2 token: " + jiraToken);
+            log.info("[GitHubApiController] Using Jira OAuth2 token: {}", jiraToken);
 
         String jiraApiUrl = "https://api.atlassian.com/me";
         HttpHeaders headers = new HttpHeaders();
@@ -84,8 +88,8 @@ public class GitHubApiController {
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> jiraApiResponse = restTemplate.exchange(jiraApiUrl, HttpMethod.GET, entity, String.class);
 
-        System.out.println("[GitHubApiController] Jira API status: " + jiraApiResponse.getStatusCode());
-        System.out.println("[GitHubApiController] Jira API response: " + jiraApiResponse.getBody());
+            log.info("[GitHubApiController] Jira API status: {}", jiraApiResponse.getStatusCode());
+            log.info("[GitHubApiController] Jira API response: {}", jiraApiResponse.getBody());
 
         return ResponseEntity.ok(jiraApiResponse.getBody());
     }

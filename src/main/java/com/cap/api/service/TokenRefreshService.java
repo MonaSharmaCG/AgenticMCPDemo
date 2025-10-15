@@ -30,14 +30,20 @@ public class TokenRefreshService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         Map<String, String> params = new HashMap<>();
-        params.put("grant_type", "refresh_token");
-        params.put("refresh_token", client.getRefreshToken().getTokenValue());
+    params.put("grant_type", "refresh_token");
+    var refreshTokenObj = client.getRefreshToken();
+    if (refreshTokenObj == null) return "No refresh token available.";
+    params.put("refresh_token", refreshTokenObj.getTokenValue());
         params.put("client_id", getClientId(provider));
         params.put("client_secret", getClientSecret(provider));
         HttpEntity<Map<String, String>> request = new HttpEntity<>(params, headers);
-        ResponseEntity<Map> response = restTemplate.exchange(tokenUri, HttpMethod.POST, request, Map.class);
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null && response.getBody().get("access_token") != null) {
-            return (String) response.getBody().get("access_token");
+        ResponseEntity<java.util.Map<String, Object>> response = restTemplate.exchange(tokenUri, HttpMethod.POST, request, new org.springframework.core.ParameterizedTypeReference<java.util.Map<String, Object>>(){});
+        if (response.getStatusCode() == HttpStatus.OK) {
+            java.util.Map<String, Object> body = response.getBody();
+            if (body != null && body.get("access_token") != null) {
+                Object at = body.get("access_token");
+                return at == null ? null : at.toString();
+            }
         }
         return "Failed to refresh token.";
     }

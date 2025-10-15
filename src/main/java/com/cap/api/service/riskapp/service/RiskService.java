@@ -6,7 +6,6 @@ import com.cap.api.service.riskapp.repository.RiskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 
 @Service
 public class RiskService {

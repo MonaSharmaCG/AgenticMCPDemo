@@ -20,6 +20,8 @@ public class GitHubOAuthController {
     @Autowired
     private OAuth2AuthorizedClientService authorizedClientService;
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GitHubOAuthController.class);
+
     @Autowired
     private TokenRevokeService tokenRevokeService;
 
@@ -54,8 +56,8 @@ public String home(@AuthenticationPrincipal OAuth2User principal, OAuth2Authenti
     } else if ("jira".equals(provider)) {
         username = principal.getAttribute("email"); // or "sub" or another attribute
     }
-    System.out.println("Provider: " + provider);
-    System.out.println("Username: " + username);
+    log.info("Provider: {}", provider);
+    log.info("Username: {}", username);
     return "Hello, " + (username != null ? username : "user") + "!<br/>"
          + "<a href=\"/logout\">Logout</a>";
 }

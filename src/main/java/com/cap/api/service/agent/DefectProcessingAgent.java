@@ -2,16 +2,22 @@ package com.cap.api.service.agent;
 
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import jakarta.annotation.PostConstruct;
 
 import java.nio.file.Path;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.cap.api.service.agent.GitAgentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Autonomous agent for processing JIRA defects and fixing application bugs.
  */
 @Component
 public class DefectProcessingAgent {
+    private static final Logger log = LoggerFactory.getLogger(DefectProcessingAgent.class);
     // Track last seen bug suggestions by issue key
     private final java.util.Map<String, String> lastBugSuggestions = new java.util.HashMap<>();
     @Value("${jira.url}")
@@ -22,6 +28,9 @@ public class DefectProcessingAgent {
     private String jiraApiToken;
 
     private String encodedAuth;
+
+    @Autowired(required = false)
+    private GitAgentService gitAgentService;
 
     @PostConstruct
     public void init() {
@@ -44,7 +53,7 @@ public class DefectProcessingAgent {
         List<String> bugs = new java.util.ArrayList<>();
         try {
             if (jiraUrl == null || encodedAuth == null) {
-                System.out.println("JIRA credentials not initialized.");
+                log.warn("JIRA credentials not initialized.");
                 return bugs;
             }
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
@@ -67,7 +76,7 @@ public class DefectProcessingAgent {
                 }
             }
         } catch (Exception e) {
-            System.out.println("Failed to fetch JIRA bugs: " + e.getMessage());
+            log.error("Failed to fetch JIRA bugs: {}", e.getMessage(), e);
         }
         return bugs;
     }
@@ -77,7 +86,7 @@ public class DefectProcessingAgent {
      */
     public void analyzeBugs(List<String> bugs) {
         for (String bug : bugs) {
-            System.out.println("Analyzing bug: " + bug);
+            log.info("Analyzing bug: {}", bug);
             // Extract affected class/method from bug description
             String affectedClass = null;
             String affectedMethod = null;
@@ -91,10 +100,10 @@ public class DefectProcessingAgent {
                 }
             }
             if (affectedClass != null) {
-                System.out.println("Affected class: " + affectedClass);
+                log.info("Affected class: {}", affectedClass);
             }
             if (affectedMethod != null) {
-                System.out.println("Affected method: " + affectedMethod);
+                log.info("Affected method: {}", affectedMethod);
             }
         }
     }
@@ -106,7 +115,7 @@ public class DefectProcessingAgent {
         for (String bug : bugs) {
             String suggestion = suggestFix(bug);
             String logEntry = "Suggested fix for bug: " + bug + "\nFix suggestion: " + suggestion + "\n";
-            System.out.println(logEntry);
+            log.info(logEntry);
             // Log to defect_agent_log.txt
             try {
                 java.nio.file.Files.write(
@@ -116,7 +125,7 @@ public class DefectProcessingAgent {
                     java.nio.file.StandardOpenOption.APPEND
                 );
             } catch (Exception e) {
-                System.out.println("Failed to write to defect_agent_log.txt: " + e.getMessage());
+                log.error("Failed to write to defect_agent_log.txt: {}", e.getMessage(), e);
             }
             // Update JIRA with the suggestion as a comment
             updateJiraWithComment(bug, suggestion);
@@ -162,11 +171,11 @@ public class DefectProcessingAgent {
                 }
             }
             if (issueKey == null || issueKey.isEmpty()) {
-                System.out.println("Could not extract JIRA issue key from bug: " + bug);
+                    log.warn("Could not extract JIRA issue key from bug: {}", bug);
                 return;
             }
             if (jiraUrl == null || encodedAuth == null) {
-                System.out.println("JIRA credentials not initialized.");
+                log.warn("JIRA credentials not initialized.");
                 return;
             }
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
@@ -206,11 +215,11 @@ public class DefectProcessingAgent {
                     }
                 }
                 if (alreadyExists) {
-                    System.out.println("Comment already exists for JIRA issue " + issueKey + ", skipping.");
+                    log.info("Comment already exists for JIRA issue {}, skipping.", issueKey);
                     return;
                 }
             } catch (Exception ex) {
-                System.out.println("Exception checking existing comments: " + ex.getMessage());
+                log.error("Exception checking existing comments: {}", ex.getMessage(), ex);
             }
             // Build Atlassian doc format for comment body
             String payload = om.writeValueAsString(
@@ -241,15 +250,15 @@ public class DefectProcessingAgent {
                     String.class
                 );
                 if (response.getStatusCode().is2xxSuccessful()) {
-                    System.out.println("Successfully posted comment to JIRA issue " + issueKey);
+                    log.info("Successfully posted comment to JIRA issue {}", issueKey);
                 } else {
-                    System.out.println("Failed to post comment to JIRA issue " + issueKey + ": " + response.getStatusCode());
+                    log.warn("Failed to post comment to JIRA issue {}: {}", issueKey, response.getStatusCode());
                 }
             } catch (Exception ex) {
-                System.out.println("Exception posting comment to JIRA: " + ex.getMessage());
+                log.error("Exception posting comment to JIRA: {}", ex.getMessage(), ex);
             }
         } catch (Exception e) {
-            System.out.println("Error in updateJiraWithComment: " + e.getMessage());
+            log.error("Error in updateJiraWithComment: {}", e.getMessage(), e);
         }
     }
 
@@ -261,40 +270,82 @@ public class DefectProcessingAgent {
     }
 
     /**
-     * Main entry point for autonomous defect processing.
+     * Main entry point for autonomous defect processing (single run).
      */
     public void processDefects() {
-        while (true) {
-            List<String> bugs = fetchJiraBugs();
-            java.util.List<String> newOrChangedBugs = new java.util.ArrayList<>();
-            for (String bug : bugs) {
-                String issueKey = null;
-                if (bug != null && !bug.isEmpty()) {
-                    String[] parts = bug.split("\\|");
-                    if (parts.length > 0 && parts[0].matches("[A-Z]+-\\d+")) {
-                        issueKey = parts[0].trim();
-                    }
-                }
-                String suggestion = suggestFix(bug);
-                if (issueKey != null) {
-                    String lastSuggestion = lastBugSuggestions.get(issueKey);
-                    if (lastSuggestion == null || !lastSuggestion.equals(suggestion)) {
-                        newOrChangedBugs.add(bug);
-                        lastBugSuggestions.put(issueKey, suggestion);
-                    }
+        // keep for backwards compatibility: single-run invocation
+        processDefectsOnce();
+    }
+
+    /**
+     * Single-run processing logic. Suitable for scheduled invocations.
+     */
+    public void processDefectsOnce() {
+        List<String> bugs = fetchJiraBugs();
+        java.util.List<String> newOrChangedBugs = new java.util.ArrayList<>();
+        for (String bug : bugs) {
+            String issueKey = null;
+            if (bug != null && !bug.isEmpty()) {
+                String[] parts = bug.split("\\|");
+                if (parts.length > 0 && parts[0].matches("[A-Z]+-\\d+")) {
+                    issueKey = parts[0].trim();
                 }
             }
-            if (!newOrChangedBugs.isEmpty()) {
-                analyzeBugs(newOrChangedBugs);
-                fixBugs(newOrChangedBugs);
-                logAndUpdateJira(newOrChangedBugs);
+            String suggestion = suggestFix(bug);
+            if (issueKey != null) {
+                String lastSuggestion = lastBugSuggestions.get(issueKey);
+                if (lastSuggestion == null || !lastSuggestion.equals(suggestion)) {
+                    newOrChangedBugs.add(bug);
+                    lastBugSuggestions.put(issueKey, suggestion);
+                }
             }
+        }
+        if (!newOrChangedBugs.isEmpty()) {
+            analyzeBugs(newOrChangedBugs);
+            fixBugs(newOrChangedBugs);
+            logAndUpdateJira(newOrChangedBugs);
+            // write suggestions to a file to simulate generated code / artifacts
             try {
-                Thread.sleep(5000); // Poll every 5 seconds
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
+                java.nio.file.Path out = Path.of("agent_generated/last_suggestions.txt");
+                java.nio.file.Files.createDirectories(out.getParent());
+                StringBuilder sb = new StringBuilder();
+                for (String s : newOrChangedBugs) sb.append(s).append("\n---\n");
+                java.nio.file.Files.write(out, sb.toString().getBytes());
+                // If GitAgentService is available, commit and push changes
+                if (gitAgentService != null) {
+                    String repoPath = "."; // root of repo
+                    String branch = "agent/" + java.time.Instant.now().getEpochSecond();
+                    String msg = "chore(agent): apply suggestions from MCP agent";
+                    // token should be provided via environment variable GITHUB_TOKEN or configured in service
+                    String token = System.getenv("GITHUB_TOKEN");
+                    if (token != null && !token.isEmpty()) {
+                        try {
+                            String reviewers = System.getenv("AUTO_REVIEWERS");
+                            String prResp = gitAgentService.commitPushAndCreatePr(repoPath, branch, msg, "main", "Automated changes from Agentic MCP", "Agent generated suggestions", reviewers == null ? "" : reviewers);
+                            log.info("PR Response: {}", prResp == null ? "(empty)" : prResp.substring(0, Math.min(prResp.length(), 400)));
+                        } catch (Exception ex) {
+                            log.error("Failed to push/create PR: {}", ex.getMessage(), ex);
+                        }
+                    } else {
+                    log.info("GITHUB_TOKEN not set; skipping automated push.");
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Failed to write suggestions or push changes: {}", e.getMessage(), e);
             }
+        }
+    }
+
+    /**
+     * Scheduled poller that runs every 10 seconds and delegates to processDefectsOnce.
+     * The fixedDelay ensures we wait 10s after the completion of the last run.
+     */
+    @Scheduled(fixedDelayString = "10000")
+    public void pollJiraScheduled() {
+        try {
+            processDefectsOnce();
+        } catch (Exception e) {
+            log.error("Scheduled defect processing error: {}", e.getMessage(), e);
         }
     }
 }

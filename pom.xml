@@ -58,6 +58,8 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- Note: Git operations performed via CLI, JGit dependency removed to avoid artifact resolution issues -->
+
 		      <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>

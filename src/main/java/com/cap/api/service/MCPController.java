@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 @RequestMapping("/mcp")
 public class MCPController {
     @Autowired
+    @SuppressWarnings("unused")
     private OAuth2AuthorizedClientService authorizedClientService;
 
     // Authentication status endpoint
