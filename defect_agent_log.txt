@@ -1,0 +1,16 @@
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+Fix suggestion: Suggested update: Suggested update: Review and address described issue.
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||
+Fix suggestion: Suggested update: Suggested update: Review and address described issue.
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.

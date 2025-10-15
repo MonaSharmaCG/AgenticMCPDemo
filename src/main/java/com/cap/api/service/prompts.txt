@@ -1,0 +1,4 @@
+Generate the business scenarios/summary for this stored procedure.
+Generate the  java springboot microservice application with full implementation of business logic and highly cohesive and loosely coupled principle from these business scenarios.
+Generate missing business logic
+Generate the junit test cases for service layer

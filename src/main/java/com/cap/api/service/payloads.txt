@@ -1,0 +1,18 @@
+1. Add
+Method: POST
+url:http://localhost:8080/claims/add
+payload:{
+            "claimReason":"Accident",
+            "claimType":"Accident",
+            "claimAmount":"100",
+            "claimDate":"2024-07-08"
+        }
+2. Get All
+Method: GET
+url:http://localhost:8080/claims/all
+3. Get By Id
+Method: GET
+url:http://localhost:8080/claims/1
+4.Approve
+Method: PUT
+url:http://localhost:8080/claims/approve/1

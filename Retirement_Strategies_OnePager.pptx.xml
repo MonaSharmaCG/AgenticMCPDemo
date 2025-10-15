@@ -1,0 +1,60 @@
+<Presentation>
+  <Slide title="LIFE & ANNUITY MODERNIZATION ON CLOUD USING DOMAIN DRIVEN DESIGN">
+    <Table>
+      <Header>Nominator Name</Header>
+      <Header>BU</Header>
+      <Header>MU</Header>
+      <Header>Account</Header>
+      <Header>Name of the Engagement</Header>
+      <Header>Engagement ID (e-Monitoring Code)</Header>
+      <Header>Type of Engagement</Header>
+      <Header>Base Revenue</Header>
+      <Header>Sold Margin %</Header>
+      <Header>Delivered Margin %</Header>
+      <Header>DVI Absolute value</Header>
+      <Header>DVI % value</Header>
+      <Header>OTACE</Header>
+      <Header>Improved business on top of existing contracted revenue (In Euros)</Header>
+      <Header>Measurable Productivity Improvement (substantiate it with data points)</Header>
+      <Header>What made the engagement complex?</Header>
+      <Header>Can the Client Feedback be used for external reference (Yes/No)</Header>
+      <Header>Executive Summary of the nomination</Header>
+      <Header>Additional comments that you would like to share with the evaluation committee</Header>
+      <Header>Describe in brief how the opportunity was spotted, the efforts of delivery team and Account/Sales team in securing this deal</Header>
+      <Header>Delivery Led Sales Details</Header>
+      <Header>DLS Revenue (In Euros)</Header>
+      <Header>DLS Sold Margin (%)</Header>
+      <Header>Has there been an RFP floated for the deal</Header>
+      <Header>Lead Source for the Deal (Delivery or Account/Sales)</Header>
+      <Header>Is the New deal from the same buying centre as existing engagement?</Header>
+      <Row>
+        <Cell>Mona Sharma</Cell>
+        <Cell>Insurance</Cell>
+        <Cell>Insurance-West</Cell>
+        <Cell>Prudential</Cell>
+        <Cell>Retirement Strategies</Cell>
+        <Cell></Cell>
+        <Cell>Fixed Fees</Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell>This engagement is inherently complex due to several factors. We started with only a high-level, single-line requirement, requiring us to collaboratively define detailed architecture and solution scope from scratch in close alignment with the customer. The solution demanded innovative use of cutting-edge technologies, including designing and deploying a bespoke AWS infrastructure with EKS clusters, Helm charts, and a modern spring boot-based microservices architecture. Integration with advanced AWS services like Kinesis (Pub/Sub) and S3 introduced additional architectural and implementation challenges. Furthermore, the project required us to facilitate the migration from a heavily manual, legacy LifeCAD Oracle payments process to a fully digitized system, including the implementation of a new payment platform. Our team also pioneered the digitization of paper-based annuitization and payment processes within the retirement strategies journey, driving significant change in both business processes and technology. These factors, coupled with the need for constant stakeholder alignment and iterative solutioning, contributed to the overall complexity of the engagement.</Cell>
+        <Cell>Yes</Cell>
+        <Cell>The Retirement Strategies Digitization project exemplifies innovation and client partnership, transforming a fragmented, manual payment system into a scalable, fully digital solution. Initially scoped with only a single-line business requirement, our delivery team led the end-to-end architecture definition, leveraging modern AWS cloud technologies—including EKS, Helm, Kinesis, and S3. By designing and implementing a robust, microservices-based platform, we enabled seamless integration, enhanced security, and automation of critical annuitization and payment processes. Our solution replaces the legacy LifeCAD Oracle payments—primarily manual operations—with an automated platform, significantly improving process efficiency and customer experience. This initiative required rigorous collaboration, rapid prototyping, and continued alignment with diverse business stakeholders. As a first-in-kind architecture for the client, this engagement paves the way for future digital transformation, delivering substantial business value while positioning our team as trusted, strategic partners.</Cell>
+        <Cell>This initiative is continuously driving digital transformation within the client organization. Our team is actively collaborating with the client to address evolving requirements, ensuring ongoing innovation and adaptability. By maintaining a proactive approach and leveraging deep technical expertise, we are delivering a first-of-its-kind solution that consistently demonstrates significant business benefits. A key aspect of our delivery is the implementation of robust Dynatrace monitoring and alerting systems, which provide real-time visibility and proactive incident management across the complex cloud-native architecture. This monitoring ensures operational reliability and supports the high standards expected by both the business and end users. The framework and practices established during this engagement are sparking ongoing discussions around future enhancements and broader adoption across additional business units.</Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+        <Cell></Cell>
+      </Row>
+    </Table>
+  </Slide>
+</Presentation>

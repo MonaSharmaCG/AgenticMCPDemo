@@ -1,0 +1,11 @@
+@startuml
+title Jira OAuth2 Project Permission Flow
+
+User->App: Login with Jira OAuth2
+App->Jira: Request OAuth2 token
+Jira->App: Return access token
+App->Jira: GET /mypermissions?projectKey=SCRUM&permissions=BROWSE_PROJECTS (with token)
+Jira->App: Return permission result
+App->User: If permission granted, show project details
+App->User: If not, show access denied
+@enduml
