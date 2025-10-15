@@ -3,7 +3,7 @@ package com.cap.api.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +20,7 @@ public class JiraChangeLogger {
                 }
                 System.out.println("[JiraChangeLogger] Writing change log to: " + CHANGE_LOG_FILE);
                 System.out.println("[JiraChangeLogger] Change log contents:\n" + sb.toString());
-                Files.write(Paths.get(CHANGE_LOG_FILE), sb.toString().getBytes());
+                Files.write(Path.of(CHANGE_LOG_FILE), sb.toString().getBytes());
             } else {
                 System.out.println("[JiraChangeLogger] No changes detected, no file written.");
             }

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Value;
 import jakarta.annotation.PostConstruct;
 
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -109,7 +110,7 @@ public class DefectProcessingAgent {
             // Log to defect_agent_log.txt
             try {
                 java.nio.file.Files.write(
-                    java.nio.file.Paths.get("defect_agent_log.txt"),
+                    Path.of("defect_agent_log.txt"),
                     logEntry.getBytes(),
                     java.nio.file.StandardOpenOption.CREATE,
                     java.nio.file.StandardOpenOption.APPEND
