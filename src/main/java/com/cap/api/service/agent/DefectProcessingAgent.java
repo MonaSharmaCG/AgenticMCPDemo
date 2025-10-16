@@ -298,16 +298,19 @@ public class DefectProcessingAgent {
      */
     public void processDefects() {
         // keep for backwards compatibility: single-run invocation
-            List<String> bugs = fetchJiraBugs();
-            analyzeBugs(bugs);
-            for (String bug : bugs) {
-                String issueKey = extractIssueKey(bug);
-                if (issueKey != null && !isProcessed(issueKey)) {
-                    String branchName = createBranchName(issueKey, bug);
-                    gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
-                    markProcessed(issueKey);
-                }
+        List<String> bugs = fetchJiraBugs();
+        analyzeBugs(bugs);
+        for (String bug : bugs) {
+            String issueKey = extractIssueKey(bug);
+            if (issueKey != null && !isProcessed(issueKey)) {
+                String branchName = createBranchName(issueKey, bug);
+                gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
+                // After fix and PR, comment PR link back to Jira
+                String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
+                updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
+                markProcessed(issueKey);
             }
+        }
         }
 
     private String createBranchName(String issueKey, String bugDesc) {
@@ -383,6 +386,11 @@ public class DefectProcessingAgent {
                             String reviewers = System.getenv("AUTO_REVIEWERS");
                             String prResp = gitAgentService.commitPushAndCreatePr(repoPath, branch, msg, "main", "Automated changes from Agentic MCP", "Agent generated suggestions", reviewers == null ? "" : reviewers, githubToken);
                             log.info("PR Response: {}", prResp == null ? "(empty)" : prResp.substring(0, Math.min(prResp.length(), 400)));
+                            // After PR creation, comment PR link back to Jira for each bug
+                            for (String bug : newOrChangedBugs) {
+                                String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branch;
+                                updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
+                            }
                         } catch (Exception ex) {
                             log.error("Failed to push/create PR: {}", ex.getMessage(), ex);
                         }
