@@ -1,0 +1,22 @@
+@startuml
+actor User
+participant "JIRA MCP Agent\n(Spring Boot)" as JiraAgent
+participant "JIRA" as Jira
+participant "GitHub MCP Agent\n(GitHub Actions/Workflow)" as GitHubAgent
+participant "GitHub Repo" as GitHub
+participant "Code Review Bot\n(GitHub Actions)" as ReviewBot
+
+User -> Jira : Create/Update Story or Defect
+JiraAgent -> Jira : Poll for new/updated stories (every 10s)
+Jira -> JiraAgent : Return new/updated story/defect
+JiraAgent -> JiraAgent : Analyze requirements\nGenerate/modify code
+JiraAgent -> GitHubAgent : Trigger commit & push (via MCP protocol)
+GitHubAgent -> GitHub : Commit, branch, push code
+GitHub -> GitHubAgent : Confirm push
+GitHubAgent -> GitHub : Create Pull Request
+GitHub -> ReviewBot : Trigger code review workflow
+ReviewBot -> GitHub : Parse guidelines\nReview PR code
+ReviewBot -> GitHub : Comment feedback, tag reviewers
+ReviewBot -> Jira : (Async) Update JIRA with PR status/feedback
+
+@enduml
