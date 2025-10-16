@@ -14,7 +14,7 @@
 	<name>ClaimService</name>
 	<description>Demo project for Spring Boot</description>
 	<properties>
-		<java.version>21</java.version>
+		<java.version>17</java.version>
 		<tomcat.version>10.1.44</tomcat.version>
 	</properties>
 	<dependencies>
