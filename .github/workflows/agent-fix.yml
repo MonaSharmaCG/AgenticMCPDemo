@@ -1,0 +1,36 @@
+name: Agentic MCP Automated Fix
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to create from main'
+        required: true
+      bugDesc:
+        description: 'Bug description to apply as fix'
+        required: true
+jobs:
+  create-fix-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Create new branch
+        run: |
+          git checkout -b ${{ github.event.inputs.branch }}
+      - name: Apply fix (demo)
+        run: |
+          echo "${{ github.event.inputs.bugDesc }}" > fix.txt
+          git add fix.txt
+          git commit -m "Automated fix for ${{ github.event.inputs.branch }}"
+      - name: Push branch
+        run: |
+          git push origin ${{ github.event.inputs.branch }}
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v5
+        with:
+          base: main
+          branch: ${{ github.event.inputs.branch }}
+          title: "Automated fix for ${{ github.event.inputs.branch }}"
+          body: "This PR was created by the Agentic MCP automated workflow."
