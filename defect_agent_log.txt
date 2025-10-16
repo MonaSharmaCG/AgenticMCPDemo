@@ -929,3 +929,398 @@ public class ExampleController {
     }
 }
 ```
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+LLM suggestion: LLM suggestion: ```java
+// Original code snippet with potential issue
+policy.setAmount(policyDto.getPolicyAmount());
+
+// Fixed code
+policy.setAmount(policyDto.getPolicyAmount() != null ? policyDto.getPolicyAmount() : BigDecimal.ZERO);
+```
+
+**Rationale:** This fix ensures that if `policyDto.getPolicyAmount()` is `null`, the `policyAmount` field in the `policy` object is set to a default value of `BigDecimal.ZERO`, preventing potential `NullPointerException` or field mismatch issues.
+LLM code fix:
+```java
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.scale() > 2) {
+            this.policyAmount = policyAmount.setScale(2, RoundingMode.HALF_UP);
+        } else {
+            this.policyAmount = policyAmount;
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||||||||||||||||||||||||
+LLM suggestion: LLM suggestion: ```java
+// Fix: Ensure the policy amount is correctly formatted when setting and retrieving.
+public void setPolicyAmount(BigDecimal policyAmount) {
+    if (policyAmount != null) {
+        this.policyAmount = policyAmount.setScale(2, RoundingMode.HALF_UP);
+    } else {
+        this.policyAmount = BigDecimal.ZERO;
+    }
+}
+
+public BigDecimal getPolicyAmount() {
+    return this.policyAmount != null ? this.policyAmount : BigDecimal.ZERO;
+}
+```
+
+**Rationale:** The defect likely arises due to inconsistencies in the formatting of the policy amount. Using `BigDecimal.setScale()` and defaulting to `BigDecimal.ZERO` ensures uniform rounding and avoids null mismatches.
+LLM code fix:
+```java
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount == null || policyAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Policy amount cannot be null or negative");
+        }
+        this.policyAmount = policyAmount.setScale(2, RoundingMode.HALF_UP); // Ensure consistent scale of 2
+    }
+}
+```
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||||||||||||||||||||||
+LLM suggestion: LLM suggestion: ### Code Suggestion:
+```java
+// Update the field validation logic to correctly map the policy amount field.
+BigDecimal policyAmount = new BigDecimal(request.getParameter("policyAmount"));
+if (policyAmount.scale() > 2) {
+    throw new IllegalArgumentException("Policy amount cannot have more than two decimal places.");
+}
+
+// Ensure proper formatting before saving the policy amount
+policy.setPolicyAmount(policyAmount.setScale(2, RoundingMode.HALF_UP));
+policyRepository.save(policy);
+```
+
+### Rationale:
+- Ensures the `policyAmount` field accepts only up to two decimal places (common for monetary values).
+- Uses `setScale` with `RoundingMode.HALF_UP` for consistent formatting and storage.
+- Validates and prevents unexpected input mismatches or database saving issues.
+LLM code fix:
+```java
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.scale() > 2) {
+            this.policyAmount = policyAmount.setScale(2, RoundingMode.HALF_UP);
+        } else {
+            this.policyAmount = policyAmount;
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-650|test defect to check polling|To Do|||||||||||||||||
+LLM suggestion: LLM suggestion: This appears to be a placeholder or incomplete defect description ("test defect to check polling"). Without specific details about the defect or the code involved, I can only provide a general recommendation:
+
+```
+while (isPolling) {
+    try {
+        Thread.sleep(POLL_INTERVAL);
+        performPolling(); // Confirm this method checks for required conditions
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt(); // Restore interrupted status
+        log.error("Polling was interrupted", e);
+        break; // Exit loop if thread interruption is desired behavior
+    } catch (Exception e) {
+        log.warn("An error occurred during polling: ", e);
+        continue; // Ensure polling continues after non-critical errors
+    }
+}
+```
+
+**Rationale**: 
+- If the defect relates to checking polling in a loop, the above code ensures proper handling of interruptions and unexpected exceptions during polling. It uses best practices like restoring the interrupted status. Replace placeholders (`isPolling`, `performPolling()`, `POLL_INTERVAL`) with actual variables/methods relevant to your application. If further details are available, feel free to refine.
+LLM code fix:
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class PollingService {
+
+    private static final int POLL_INTERVAL_SECONDS = 5; // Adjust interval as needed
+    private static final int MAX_RETRIES = 10; // Adjust max retries as needed
+    
+    public static void main(String[] args) {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(PollingService::poll);
+        executor.shutdown();
+    }
+
+    private static void poll() {
+        int retryCount = 0;
+
+        while (retryCount < MAX_RETRIES) {
+            try {
+                System.out.println("Polling external service...");
+                boolean success = checkServiceStatus();
+
+                if (success) {
+                    System.out.println("Service is up. Stopping polling.");
+                    break;
+                }
+
+                System.out.println("Service is down. Retrying in " + POLL_INTERVAL_SECONDS + " seconds...");
+                TimeUnit.SECONDS.sleep(POLL_INTERVAL_SECONDS);
+                retryCount++;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                System.err.println("Polling interrupted. Exiting.");
+                break;
+            }
+        }
+
+        if (retryCount >= MAX_RETRIES) {
+            System.err.println("Max retries reached. Service is unavailable.");
+        }
+    }
+
+    private static boolean checkServiceStatus() {
+        // Dummy implementation to simulate service status check.
+        // Replace this logic with actual external service check.
+        return Math.random() > 0.8; // Simulate random service availability (20% chance to be up)
+    }
+}
+```
+Suggested fix for bug: SCRUM-651|test ticket, fix logging issues|To Do|||||||||||||||
+LLM suggestion: LLM suggestion: ```java
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class LoggingExample {
+    private static final Logger logger = Logger.getLogger(LoggingExample.class.getName());
+
+    public static void main(String[] args) {
+        try {
+            // Some application logic
+            logger.log(Level.INFO, "Application started");
+            
+            // Simulate an error for demonstration
+            throw new Exception("Simulated exception");
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "An error occurred: {0}", e.getMessage());
+        } finally {
+            logger.log(Level.INFO, "Application ended");
+        }
+    }
+}
+```
+
+**Rationale**:
+1. Improved logging by including varying levels (`INFO`, `SEVERE`) to indicate different importance.
+2. Used placeholders (`{0}`) in log messages for better readability and support for formatting.
+3. Ensured that logging is properly wrapped within exception handling to provide meaningful insights during errors.
+LLM code fix:
+```java
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class LoggingService {
+
+    private static final Logger logger = Logger.getLogger(LoggingService.class.getName());
+
+    public void processRequest(String requestData) {
+        try {
+            logger.log(Level.INFO, "Processing request: {0}", requestData);
+            // Process the request logic here
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error processing request: " + requestData, e);
+        }
+    }
+
+    public void initialize() {
+        try {
+            logger.log(Level.INFO, "Initializing service...");
+            // Initialization logic here
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error during initialization.", e);
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-652|Any payment less than 1$ make it as an invalid payment instead of less than 0$|To Do|||||||||||||||
+LLM suggestion: LLM suggestion: ### Code Suggestion:
+```java
+public boolean isValidPayment(double amount) {
+    return amount >= 1.0;
+}
+```
+
+### Rationale:
+The condition is updated to treat any payment less than `$1` as invalid (`amount >= 1.0`), instead of the original check for `$0`. This satisfies the new defect requirement.
+LLM code fix:
+```java
+public boolean isPaymentValid(double amount) {
+    if (amount < 1.0) {
+        return false; // Invalid payment
+    }
+    return true; // Valid payment
+}
+```
+Suggested fix for bug: SCRUM-665|add logger in controller layer at error level|To Do|||||||||||||||
+LLM suggestion: LLM suggestion: ```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+// Assuming this is a method within your controller
+@RestController
+public class MyController {
+
+    private static final Logger logger = LoggerFactory.getLogger(MyController.class);
+
+    @GetMapping("/endpoint")
+    public ResponseEntity<String> myMethod() {
+        try {
+            // Business logic
+            return ResponseEntity.ok("Success");
+        } catch (Exception e) {
+            logger.error("An error occurred in MyController.myMethod: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+    }
+}
+```
+
+**Rationale:**  
+1. Added a logger using SLF4J (`LoggerFactory`) to the controller class.  
+2. Logged the error message at `ERROR` level within the `catch` block alongside the exception stack trace.  
+3. Helps in pinpointing issues during runtime while avoiding excessive logging or overlooking key execution points.
+LLM code fix:
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@RestController
+public class MyController {
+
+    private static final Logger logger = LoggerFactory.getLogger(MyController.class);
+
+    @GetMapping("/example")
+    public ResponseEntity<String> exampleEndpoint() {
+        try {
+            // Business logic here
+            return ResponseEntity.ok("Success");
+        } catch (Exception e) {
+            logger.error("An error occurred in exampleEndpoint: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred");
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-666|check claimdate field and update the format to utc|To Do|||||||||||||||
+LLM suggestion: LLM suggestion: **Code Suggestion:**
+
+```java
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.ZoneOffset;
+
+public class ClaimDateFormatter {
+    public static String convertToUTC(String claimDate) {
+        ZonedDateTime parsedDate = ZonedDateTime.parse(claimDate, DateTimeFormatter.ISO_DATE_TIME);
+        ZonedDateTime utcDate = parsedDate.withZoneSameInstant(ZoneOffset.UTC);
+        return utcDate.format(DateTimeFormatter.ISO_DATE_TIME);
+    }
+}
+```
+
+**Rationale:** 
+This code ensures that the `claimDate` field is parsed and converted to UTC format using the `ZonedDateTime` class. The `DateTimeFormatter.ISO_DATE_TIME` ensures consistent formatting, and `withZoneSameInstant(ZoneOffset.UTC)` standardizes the date to UTC.
+LLM code fix:
+```java
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
+public class ClaimProcessor {
+    
+    public String updateClaimDateFormatToUTC(String claimDate) {
+        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"));
+        
+        LocalDateTime localDateTime = LocalDateTime.parse(claimDate, inputFormatter);
+        return outputFormatter.format(localDateTime.atZone(ZoneId.systemDefault()));
+    }
+}
+```
+Suggested fix for bug: SCRUM-667|add loggers with level error for prod deployment, in controller layers|To Do|||||||
+LLM suggestion: LLM suggestion: **Code Suggestion:**
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@RestController
+public class SampleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(SampleController.class);
+
+    @GetMapping("/endpoint")
+    public ResponseEntity<String> sampleEndpoint() {
+        try {
+            // Business logic here
+            return ResponseEntity.ok("Success");
+        } catch (Exception e) {
+            logger.error("Error occurred while processing /endpoint request: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error");
+        }
+    }
+}
+```
+
+**Rationale:**
+1. Introduced SLF4J `Logger` for consistent logging.
+2. Added `logger.error` in exception-handling blocks to record production errors effectively.
+3. Ensures minimal performance impact by logging only on error level for production.
+LLM code fix:
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+public class SampleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(SampleController.class);
+
+    @GetMapping("/example")
+    public String exampleEndpoint() {
+        try {
+            // Controller logic
+            return "Success";
+        } catch (Exception e) {
+            logger.error("Error occurred in exampleEndpoint: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @PostMapping("/create")
+    public String createEndpoint(@RequestBody String payload) {
+        try {
+            // Controller logic
+            return "Created";
+        } catch (Exception e) {
+            logger.error("Error occurred in createEndpoint: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+}
+```
