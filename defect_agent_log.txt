@@ -526,3 +526,406 @@ public class Claim {
     }
 }
 ```
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+LLM suggestion: LLM suggestion: ```java
+// Original code: 
+policyAmountField.setText(policy.getAmount());
+
+// Suggested fix:
+policyAmountField.setText(String.valueOf(policy.getAmount()));
+
+```
+
+**Rationale:** The issue likely arises from a mismatch in data types, such as attempting to set a numeric value directly to a text field. Using `String.valueOf(policy.getAmount())` ensures compatibility by converting the policy amount to a string before assigning it to the `policyAmountField`.
+LLM code fix:
+```java
+// Fixing the mismatch issue for the policy amount field
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.compareTo(BigDecimal.ZERO) >= 0) {
+            this.policyAmount = policyAmount;
+        } else {
+            throw new IllegalArgumentException("Policy amount must be a non-negative value.");
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||||||||||||||||||||
+LLM suggestion: LLM suggestion: **Code Suggestion:**
+```java
+// Ensure the policy amount is consistently formatted and parsed
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+
+public void setPolicyAmount(String policyAmount) {
+    try {
+        // Standardize policyAmount parsing to handle different formats
+        BigDecimal amount = new BigDecimal(policyAmount.replaceAll(",", "").trim());
+        this.policyAmount = amount;
+    } catch (NumberFormatException e) {
+        // Log and handle the exception as appropriate
+        throw new IllegalArgumentException("Invalid policy amount format: " + policyAmount, e);
+    }
+}
+
+public String getPolicyAmount() {
+    // Format the policyAmount to ensure consistent display
+    NumberFormat formatter = NumberFormat.getInstance();
+    return formatter.format(this.policyAmount);
+}
+```
+
+**Rationale:**
+The defect likely arises from inconsistent handling or formatting of the `policyAmount` field. The code properly parses the `policyAmount` input to a `BigDecimal` after sanitizing it and formats it consistently when accessed, ensuring there is no mismatch due to regional or manual formatting differences.
+LLM code fix:
+```java
+public class Policy {
+    private BigDecimal policyAmount;
+
+    // Getter and Setter for policyAmount
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.scale() > 2) {
+            this.policyAmount = policyAmount.setScale(2, RoundingMode.HALF_UP);
+        } else {
+            this.policyAmount = policyAmount;
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||||||||||||||||||
+LLM suggestion: LLM suggestion: ```java
+// Original Issue: Policy amount field mismatch
+// Code Fix:
+BigDecimal policyAmount = resultSet.getBigDecimal("policy_amount");
+policy.setPolicyAmount(policyAmount != null ? policyAmount : BigDecimal.ZERO);
+```
+
+**Rationale:**  
+This code ensures that if the `policy_amount` field in the database returns `null`, the `policyAmount` is set to a default value of `BigDecimal.ZERO`, avoiding potential `NullPointerException` or mismatch issues during processing.
+LLM code fix:
+```java
+// Fix for policy amount field mismatch issue
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.scale() > 2) {
+            this.policyAmount = policyAmount.setScale(2, RoundingMode.HALF_UP);
+        } else {
+            this.policyAmount = policyAmount;
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-650|test defect to check polling|To Do|||||||||||||
+LLM suggestion: LLM suggestion: It appears that this is a placeholder or a test defect description with no specific details. Please provide more context or a clear description of the issue so I can assist with an appropriate code suggestion.
+LLM code fix:
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class PollingService {
+
+    private static final int POLLING_INTERVAL_SECONDS = 10;
+    private static final int MAX_ATTEMPTS = 6;
+
+    public void startPolling() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
+            int attempts = 0;
+            boolean success = false;
+
+            while (attempts < MAX_ATTEMPTS && !success) {
+                try {
+                    attempts++;
+                    System.out.println("Polling attempt: " + attempts);
+                    success = poll(); // Simulate the polling process
+                    if (success) {
+                        System.out.println("Polling successful!");
+                        break;
+                    }
+                    TimeUnit.SECONDS.sleep(POLLING_INTERVAL_SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    System.err.println("Polling interrupted: " + e.getMessage());
+                    break;
+                } catch (Exception e) {
+                    System.err.println("Error during polling: " + e.getMessage());
+                }
+            }
+            executor.shutdown();
+        });
+    }
+
+    private boolean poll() {
+        // Replace with actual polling logic
+        return Math.random() > 0.7; // Simulate success after random attempts
+    }
+
+    public static void main(String[] args) {
+        PollingService pollingService = new PollingService();
+        pollingService.startPolling();
+    }
+}
+```
+Suggested fix for bug: SCRUM-651|test ticket, fix logging issues|To Do|||||||||||
+LLM suggestion: LLM suggestion: ### Code Fix Suggestion:
+```java
+import java.util.logging.Logger;
+
+public class LoggingExample {
+    private static final Logger LOGGER = Logger.getLogger(LoggingExample.class.getName());
+
+    public static void main(String[] args) {
+        try {
+            // Example logic
+            String data = null;
+            LOGGER.info("Processing started...");
+            
+            // Simulating potential error
+            if (data == null) {
+                throw new IllegalArgumentException("Data cannot be null");
+            }
+
+            LOGGER.info("Processing completed successfully.");
+        } catch (IllegalArgumentException e) {
+            LOGGER.severe("Error occurred: " + e.getMessage());
+        } catch (Exception e) {
+            LOGGER.severe("Unexpected error: " + e.getMessage());
+        }
+    }
+}
+```
+
+### Rationale:
+The fix improves logging by:
+1. **Adding informative log statements** (`LOGGER.info`) at critical points in the program flow to track the application's state.
+2. **Using proper severity levels** (`LOGGER.severe`) to log errors, making them easily distinguishable in logs.
+3. **Gracefully handling exceptions** to ensure detailed error messages are generated without breaking the application.
+LLM code fix:
+```java
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class LoggingFix {
+    private static final Logger LOGGER = Logger.getLogger(LoggingFix.class.getName());
+
+    public void performTask() {
+        try {
+            // Task logic here
+            LOGGER.log(Level.INFO, "Task started successfully.");
+
+            // Simulating task execution
+            int result = executeTask();
+
+            LOGGER.log(Level.INFO, "Task completed successfully with result: {0}", result);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "An error occurred while performing the task.", e);
+        }
+    }
+
+    private int executeTask() throws Exception {
+        // Simulate task logic
+        // Throw exception or return a result as per the logic
+        return 42; // Placeholder value
+    }
+
+    public static void main(String[] args) {
+        LoggingFix loggingFix = new LoggingFix();
+        loggingFix.performTask();
+    }
+}
+```
+Suggested fix for bug: SCRUM-652|Any payment less than 1$ make it as an invalid payment instead of less than 0$|To Do|||||||||||
+LLM suggestion: LLM suggestion: **Code Fix Suggestion:**
+
+```java
+public boolean isValidPayment(double amount) {
+    // Changed condition to check for less than 1 instead of less than 0
+    return amount >= 1.0;
+}
+```
+
+**Rationale:** Updated the condition to ensure payments less than $1.00 are considered invalid, as per the new requirement. This aligns the logic with the updated business rule.
+LLM code fix:
+```java
+public boolean isValidPayment(double paymentAmount) {
+    return paymentAmount >= 1.0;
+}
+```
+Suggested fix for bug: SCRUM-665|add logger in controller layer at error level|To Do|||||||||||
+LLM suggestion: LLM suggestion: **Code Suggestion:**
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class SampleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(SampleController.class);
+
+    // Example endpoint
+    @GetMapping("/example")
+    public ResponseEntity<String> exampleEndpoint() {
+        try {
+            // Business logic here
+            return ResponseEntity.ok("Success");
+        } catch (Exception e) {
+            logger.error("Error occurred in exampleEndpoint: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleException(Exception e) {
+        logger.error("Unhandled exception caught: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+    }
+}
+```
+
+**Rationale:**
+- Added an SLF4J logger to catch and log errors in the controller layer.
+- Ensured logging at error level with clear messages.
+- Used an `@ExceptionHandler` to handle and log unhandled exceptions globally in the controller.
+LLM code fix:
+```java
+package com.example.controller;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/example")
+public class ExampleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExampleController.class);
+
+    @GetMapping("/data")
+    public String getData() {
+        try {
+            // Business logic here
+            return "Success";
+        } catch (Exception e) {
+            logger.error("Error occurred while fetching data", e);
+            throw e;
+        }
+    }
+
+    @PostMapping("/submit")
+    public String submitData(@RequestBody String data) {
+        try {
+            // Business logic here
+            return "Data submitted";
+        } catch (Exception e) {
+            logger.error("Error occurred while submitting data", e);
+            throw e;
+        }
+    }
+}
+
+```
+Suggested fix for bug: SCRUM-666|check claimdate field and update the format to utc|To Do|||||||||||
+LLM suggestion: LLM suggestion: ```java
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public static String convertToUTC(String claimDate) {
+    ZonedDateTime parsedDate = ZonedDateTime.parse(claimDate, DateTimeFormatter.ISO_DATE_TIME);
+    ZonedDateTime utcDate = parsedDate.withZoneSameInstant(java.time.ZoneOffset.UTC);
+    return utcDate.format(DateTimeFormatter.ISO_DATE_TIME);
+}
+```
+
+**Rationale:** The code ensures the `claimDate` is parsed using a standard format (ISO) and converts it to UTC before returning the updated format. It uses `ZonedDateTime` for seamless timezone adjustments.
+LLM code fix:
+```java
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+
+public class ClaimProcessor {
+
+    public String updateClaimDateToUTC(String claimDate) throws Exception {
+        // Parse the input date assuming it is in the default timezone
+        SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date parsedDate = inputFormat.parse(claimDate);
+
+        // Format the parsed date to UTC
+        SimpleDateFormat utcFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        utcFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        return utcFormat.format(parsedDate);
+    }
+}
+```
+Suggested fix for bug: SCRUM-667|add loggers with level error for prod deployment, in controller layers|To Do|||
+LLM suggestion: LLM suggestion: ```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@RestController
+public class SampleController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SampleController.class);
+
+    @GetMapping("/sample")
+    public ResponseEntity<String> getSampleData() {
+        try {
+            // Business logic here
+            return ResponseEntity.ok("Sample data");
+        } catch (Exception e) {
+            LOGGER.error("Error occurred while fetching sample data", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error occurred");
+        }
+    }
+}
+```
+
+**Rationale:**  
+- Added a `Logger` instance using `LoggerFactory` to the controller class.
+- Used `LOGGER.error` to log errors in the catch block within the controller method for production deployments.
+- Ensures error information is recorded for troubleshooting while maintaining clean separation of concerns.
+LLM code fix:
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+// Example Controller
+@RestController
+@RequestMapping("/example")
+public class ExampleController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ExampleController.class);
+
+    @GetMapping("/get")
+    public ResponseEntity<String> getExample() {
+        try {
+            // Business logic here
+            return ResponseEntity.ok("Success");
+        } catch (Exception e) {
+            logger.error("An error occurred while processing the request: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+    }
+}
+```
