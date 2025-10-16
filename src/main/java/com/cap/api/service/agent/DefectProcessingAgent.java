@@ -27,6 +27,9 @@ public class DefectProcessingAgent {
     @Value("${jira.apiToken}")
     private String jiraApiToken;
 
+    @Value("${github.token:}")
+    private String githubToken;
+
     private String encodedAuth;
 
     @Autowired(required = false)
@@ -60,11 +63,18 @@ public class DefectProcessingAgent {
             headers.set("Authorization", "Basic " + encodedAuth);
             headers.set("Accept", "application/json");
             org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
-            String searchUrl = jiraUrl + (jiraUrl.endsWith("/") ? "" : "/") + "rest/api/3/search/jql?jql=type=Bug+ORDER+BY+updated+DESC&fields=summary,status,description,comment";
-            org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
+            // Use POST /rest/api/3/search/jql with JSON body to avoid URL-encoding issues
+            String searchUrl = jiraUrl + (jiraUrl.endsWith("/") ? "" : "/") + "rest/api/3/search/jql";
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String,Object> bodyMap = new java.util.HashMap<>();
+            bodyMap.put("jql", "type=Bug ORDER BY updated DESC");
+            bodyMap.put("fields", java.util.List.of("summary","status","description","comment"));
+            String payload = om.writeValueAsString(bodyMap);
+            headers.set("Content-Type", "application/json");
+            org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(payload, headers);
             org.springframework.http.ResponseEntity<String> response = restTemplate.exchange(
                 searchUrl,
-                org.springframework.http.HttpMethod.GET,
+                org.springframework.http.HttpMethod.POST,
                 entity,
                 String.class
             );
@@ -316,18 +326,60 @@ public class DefectProcessingAgent {
                     String repoPath = "."; // root of repo
                     String branch = "agent/" + java.time.Instant.now().getEpochSecond();
                     String msg = "chore(agent): apply suggestions from MCP agent";
-                    // token should be provided via environment variable GITHUB_TOKEN or configured in service
-                    String token = System.getenv("GITHUB_TOKEN");
+                    // token: prefer injected application property `github.token`, fall back to env var GITHUB_TOKEN
+                    String token = this.githubToken;
+                    if (token == null || token.isEmpty()) token = System.getenv("GITHUB_TOKEN");
                     if (token != null && !token.isEmpty()) {
                         try {
                             String reviewers = System.getenv("AUTO_REVIEWERS");
+                            // attempt to create a more meaningful branch name using the first issue key
+                            String firstIssueKey = null;
+                            for (String s : newOrChangedBugs) {
+                                if (s != null && !s.isEmpty()) {
+                                    String[] p = s.split("\\|");
+                                    if (p.length > 0 && p[0].matches("[A-Z]+-\\d+")) {
+                                        firstIssueKey = p[0];
+                                        break;
+                                    }
+                                }
+                            }
+                            if (firstIssueKey != null) {
+                                branch = "agent/fix-" + firstIssueKey + "-" + java.time.Instant.now().getEpochSecond();
+                            }
                             String prResp = gitAgentService.commitPushAndCreatePr(repoPath, branch, msg, "main", "Automated changes from Agentic MCP", "Agent generated suggestions", reviewers == null ? "" : reviewers);
                             log.info("PR Response: {}", prResp == null ? "(empty)" : prResp.substring(0, Math.min(prResp.length(), 400)));
+                            // Try to parse PR URL and comment it back to Jira issues
+                            try {
+                                if (prResp != null && !prResp.isBlank()) {
+                                    com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+                                    com.fasterxml.jackson.databind.JsonNode root = om.readTree(prResp);
+                                    String prUrl = null;
+                                    if (root.has("html_url")) prUrl = root.get("html_url").asText();
+                                    else if (root.has("url")) prUrl = root.get("url").asText();
+                                    if (prUrl != null) {
+                                        for (String bugStr : newOrChangedBugs) {
+                                            String issueKey = null;
+                                            if (bugStr != null && !bugStr.isEmpty()) {
+                                                String[] parts = bugStr.split("\\|");
+                                                if (parts.length > 0 && parts[0].matches("[A-Z]+-\\d+")) {
+                                                    issueKey = parts[0].trim();
+                                                }
+                                            }
+                                            if (issueKey != null) {
+                                                String comment = "Automated PR created: " + prUrl + "\nPlease review the proposed fix.";
+                                                updateJiraWithComment(issueKey + "|", comment);
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (Exception ex) {
+                                log.error("Failed to parse PR response or post PR link to JIRA: {}", ex.getMessage(), ex);
+                            }
                         } catch (Exception ex) {
                             log.error("Failed to push/create PR: {}", ex.getMessage(), ex);
                         }
                     } else {
-                    log.info("GITHUB_TOKEN not set; skipping automated push.");
+                        log.info("No GitHub token found in application property 'github.token' nor environment variable GITHUB_TOKEN; skipping automated push.");
                     }
                 }
             } catch (Exception e) {

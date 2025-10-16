@@ -1,0 +1,28 @@
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-650|test defect to check polling|To Do|||||
+Fix suggestion: Suggested update: Investigate: test defect to check polling
+Suggested fix for bug: SCRUM-651|test ticket, fix logging issues|To Do|||||
+Fix suggestion: Suggested update: Investigate: test ticket, fix logging issues
+Suggested fix for bug: SCRUM-652|Any payment less than 1$ make it as an invalid payment instead of less than 0$|To Do|||||
+Fix suggestion: Suggested update: Investigate: any payment less than 1$ make it as an invalid payment instead of less than 0$
+Suggested fix for bug: SCRUM-665|add logger in controller layer at error level|To Do|||
+Fix suggestion: Suggested update: Investigate: add logger in controller layer at error level
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-650|test defect to check polling|To Do|||||
+Fix suggestion: Suggested update: Investigate: test defect to check polling
+Suggested fix for bug: SCRUM-651|test ticket, fix logging issues|To Do|||||
+Fix suggestion: Suggested update: Investigate: test ticket, fix logging issues
+Suggested fix for bug: SCRUM-652|Any payment less than 1$ make it as an invalid payment instead of less than 0$|To Do|||||
+Fix suggestion: Suggested update: Investigate: any payment less than 1$ make it as an invalid payment instead of less than 0$
+Suggested fix for bug: SCRUM-665|add logger in controller layer at error level|To Do|||||
+Fix suggestion: Suggested update: Investigate: add logger in controller layer at error level

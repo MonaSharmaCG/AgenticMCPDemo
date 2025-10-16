@@ -57,9 +57,8 @@ public class GitAgentService {
         } catch (Exception ex) {
             log.warn("Failed to set git author config: {}", ex.getMessage());
         }
-        // create and switch to new branch
-        int rc = runCommand(repoDir, "git", "checkout", "-b", branchName);
-*** End Patch
+    // create and switch to new branch
+    int rc = runCommand(repoDir, "git", "checkout", "-b", branchName);
         if (rc != 0) throw new RuntimeException("Failed to create branch: " + branchName);
         // git add .
         runCommand(repoDir, "git", "add", ".");

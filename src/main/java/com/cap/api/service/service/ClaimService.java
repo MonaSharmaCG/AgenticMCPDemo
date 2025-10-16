@@ -20,8 +20,21 @@ public class ClaimService {
 
     //write a method to insert a claim
     public Claim insertClaim(Claim claim) {
-
+        // basic validation: ensure claim date is present and not in the future
+        String dateValidation = validateClaimDate(claim);
+        if (dateValidation != null) {
+            throw new RuntimeException("Claim validation failed: " + dateValidation);
+        }
         return claimRepository.save(claim);
+    }
+
+    // validate claim date - returns null when valid, otherwise an error message
+    public String validateClaimDate(Claim claim) {
+        if (claim == null) return "claim is null";
+        java.time.LocalDate claimDate = claim.getClaimDate();
+        if (claimDate == null) return "claim date is required";
+        if (claimDate.isAfter(java.time.LocalDate.now())) return "claim date cannot be in the future";
+        return null;
     }
 
     //write a method to get all claims
