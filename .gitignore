@@ -1,3 +1,8 @@
+## Ignore local application credentials and environment overrides
+/src/main/resources/application.yaml
+/src/main/resources/application.yml
+application.yaml
+.env
 # Maven / Java
 target/
 *.class
