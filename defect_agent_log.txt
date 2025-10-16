@@ -68,3 +68,5 @@ Suggested fix for bug: SCRUM-669|testing|To Do|||||
 Fix suggestion: Suggested update: Investigate: testing
 Suggested fix for bug: SCRUM-670|Add additional field beneficiary in Claim model class|To Do|||||
 Fix suggestion: Suggested update: Investigate: add additional field beneficiary in claim model class
+Suggested fix for bug: SCRUM-671|add time taken in each method|To Do|||
+Fix suggestion: Suggested update: Investigate: add time taken in each method
