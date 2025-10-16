@@ -1,5 +1,6 @@
 package com.cap.api.service.agent;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class GitAgentService {
 
     private static final Logger log = LoggerFactory.getLogger(GitAgentService.class);
+
+    @Value("${github.token:}")
+    private String githubToken;
 
     private int runCommand(File dir, String... command) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(command);
@@ -37,19 +41,39 @@ public class GitAgentService {
      */
     public String commitPushAndCreatePr(String repoPath, String branchName, String commitMessage, String baseBranch, String prTitle, String prBody, String reviewersCsv) throws Exception {
         File repoDir = new File(repoPath);
-        // git checkout -b branchName
+        // Ensure we have latest from origin for the base branch
+        try {
+            runCommand(repoDir, "git", "fetch", "origin");
+            // checkout base branch
+            runCommand(repoDir, "git", "checkout", baseBranch);
+            runCommand(repoDir, "git", "pull", "origin", baseBranch);
+        } catch (Exception ex) {
+            log.warn("Failed to update base branch '{}', continuing: {}", baseBranch, ex.getMessage());
+        }
+        // configure commit author to be the bot identity so commits are authored by agenticBot (GitHub will still show the pusher based on token)
+        try {
+            runCommand(repoDir, "git", "config", "user.name", "agenticBot");
+            runCommand(repoDir, "git", "config", "user.email", "agenticbot+actions@users.noreply.github.com");
+        } catch (Exception ex) {
+            log.warn("Failed to set git author config: {}", ex.getMessage());
+        }
+        // create and switch to new branch
         int rc = runCommand(repoDir, "git", "checkout", "-b", branchName);
-        if (rc != 0) throw new RuntimeException("Failed to create branch");
+*** End Patch
+        if (rc != 0) throw new RuntimeException("Failed to create branch: " + branchName);
         // git add .
         runCommand(repoDir, "git", "add", ".");
         // git commit -m commitMessage
         runCommand(repoDir, "git", "commit", "-m", commitMessage, "--allow-empty");
         // git push origin branchName
-        String token = System.getenv("GITHUB_TOKEN");
+    // precedence: application property (injected), then system property, then environment variable
+    String token = this.githubToken;
+    if (token == null || token.isEmpty()) token = System.getProperty("github.token");
+    if (token == null || token.isEmpty()) token = System.getenv("GITHUB_TOKEN");
         if (token == null || token.isEmpty()) {
             throw new RuntimeException("GITHUB_TOKEN is required to push and create PR");
         }
-        // update remote url to include token temporarily
+    // update remote url to include token temporarily
         // derive remote url
         ProcessBuilder rb = new ProcessBuilder("git", "config", "--get", "remote.origin.url");
         rb.directory(repoDir);

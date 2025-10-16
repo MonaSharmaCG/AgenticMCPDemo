@@ -1,0 +1,57 @@
+name: Agentic Bot - create PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Branch name to create (optional)'
+        required: false
+      pr_title:
+        description: 'Pull request title'
+        required: false
+        default: 'chore(agent): add agentic-bot workflow'
+      pr_body:
+        description: 'Pull request body'
+        required: false
+        default: 'This PR adds the Agentic Bot workflow which can perform automated commits and open PRs.'
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AGENTIC_BOT_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure git author for agenticBot
+        run: |
+          git config user.name "agenticBot"
+          git config user.email "agenticbot+actions@users.noreply.github.com"
+
+      - name: Create branch and commit marker
+        id: commit
+        run: |
+          BR=${{ github.event.inputs.branch_name }}
+          if [ -z "$BR" ]; then BR=agent/bot-${GITHUB_RUN_ID}; fi
+          echo "Using branch: $BR"
+          git checkout -b "$BR"
+          mkdir -p agent_generated
+          MARKER="agentic-bot-added-$(date +%s)"
+          echo "$MARKER" > agent_generated/$MARKER.txt
+          git add agent_generated/$MARKER.txt
+          git commit -m "chore(agent): add $MARKER" || echo "No changes to commit"
+          git push --set-upstream origin "$BR"
+          echo "branch=$BR" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request via GitHub API
+        env:
+          GITHUB_TOKEN_FOR_API: ${{ secrets.AGENTIC_BOT_TOKEN }}
+        run: |
+          BR=$(cat $GITHUB_OUTPUT | sed -n 's/^branch=//p')
+          if [ -z "$BR" ]; then echo "Could not determine branch"; exit 1; fi
+          API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls"
+          BODY=$(jq -n --arg t "${{ github.event.inputs.pr_title }}" --arg b "$BR" --arg base "main" --arg body "${{ github.event.inputs.pr_body }}" '{title:$t, head:$b, base:$base, body:$body}')
+          echo "Creating PR: $API_URL -> branch $BR"
+          curl -s -H "Authorization: token $GITHUB_TOKEN_FOR_API" -H "Accept: application/vnd.github+json" -d "$BODY" "$API_URL"
