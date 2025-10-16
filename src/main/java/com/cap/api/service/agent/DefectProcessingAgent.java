@@ -12,6 +12,7 @@ import com.cap.api.service.agent.GitAgentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Autonomous agent for processing JIRA defects and fixing application bugs.
  */
@@ -30,6 +31,17 @@ public class DefectProcessingAgent {
     @Value("${github.token:}")
     private String githubToken;
 
+        @Value("${azureopenai.api-key}")
+        private String openAIApiKey;
+        @Value("${azureopenai.endpoint}")
+        private String openAIEndpoint;
+        @Value("${azureopenai.api-version}")
+        private String openAIApiVersion;
+        @Value("${azureopenai.deployment-name}")
+        private String openAIDeploymentName;
+
+    // No SDK client; will use REST API
+
     private String encodedAuth;
 
     @Autowired(required = false)
@@ -41,6 +53,8 @@ public class DefectProcessingAgent {
             String auth = jiraEmail + ":" + jiraApiToken;
             encodedAuth = java.util.Base64.getEncoder().encodeToString(auth.getBytes());
         }
+
+            // No SDK client; will use REST API
     }
     /**
      * Main method for standalone execution.
@@ -123,34 +137,58 @@ public class DefectProcessingAgent {
      */
     public void fixBugs(List<String> bugs) {
         for (String bug : bugs) {
-            String suggestion = suggestFix(bug);
-            String logEntry = "Suggested fix for bug: " + bug + "\nFix suggestion: " + suggestion + "\n";
-            log.info(logEntry);
-            // Log to defect_agent_log.txt
-            try {
-                java.nio.file.Files.write(
-                    Path.of("defect_agent_log.txt"),
-                    logEntry.getBytes(),
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND
-                );
-            } catch (Exception e) {
-                log.error("Failed to write to defect_agent_log.txt: {}", e.getMessage(), e);
-            }
-            // Update JIRA with the suggestion as a comment
-            updateJiraWithComment(bug, suggestion);
+                String suggestion = suggestFix(bug);
+                String codeFix = generateCodeFixWithLLM(bug);
+                String logEntry = "Suggested fix for bug: " + bug + "\nLLM suggestion: " + suggestion + "\nLLM code fix:\n" + codeFix + "\n";
+                log.info(logEntry);
+                // Log to defect_agent_log.txt
+                try {
+                    java.nio.file.Files.write(
+                        Path.of("defect_agent_log.txt"),
+                        logEntry.getBytes(),
+                        java.nio.file.StandardOpenOption.CREATE,
+                        java.nio.file.StandardOpenOption.APPEND
+                    );
+                } catch (Exception e) {
+                    log.error("Failed to write to defect_agent_log.txt: {}", e.getMessage(), e);
+                }
+                // Optionally, apply code fix to source files (demo: write to agent_generated/last_suggestions.txt)
+                try {
+                    java.nio.file.Path out = Path.of("agent_generated/last_suggestions.txt");
+                    java.nio.file.Files.createDirectories(out.getParent());
+                    java.nio.file.Files.write(out, ("Bug: " + bug + "\nCode Fix:\n" + codeFix + "\n---\n").getBytes(), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+                } catch (Exception e) {
+                    log.error("Failed to write code fix: {}", e.getMessage(), e);
+                }
+                // Update JIRA with the suggestion as a comment
+                updateJiraWithComment(bug, suggestion + "\nCode fix:\n" + codeFix);
         }
+    }
+    /**
+     * Uses LLM to generate code fix for a bug description.
+     */
+    private String generateCodeFixWithLLM(String bugDescription) {
+        String llmCodeFix = callOpenAIChatCompletion(bugDescription, "You are an expert Java developer. Given the following defect description, generate a code fix (Java code only) that resolves the issue. Return only the code block, no explanation.");
+        if (llmCodeFix != null && !llmCodeFix.isBlank()) {
+            return llmCodeFix;
+        }
+        return "(LLM code fix unavailable)";
     }
 
     /**
      * Suggests a fix based on bug description (simple demo logic).
      */
     private String suggestFix(String bugDescription) {
+        // Use LLM if available
+        String llmSuggestion = callOpenAIChatCompletion(bugDescription, "You are an expert Java developer. Suggest a code fix for the following defect description. Return only the code suggestion and a brief rationale.");
+        if (llmSuggestion != null && !llmSuggestion.isBlank()) {
+            return "LLM suggestion: " + llmSuggestion;
+        }
+        // Fallback: rule-based suggestion
         String suggestion = "Review and address described issue.";
-        String[] fields = bugDescription.split("\\|");
+        String[] fields = bugDescription.split("|");
         String summary = fields.length > 1 ? fields[1].toLowerCase() : "";
         String description = fields.length > 3 ? fields[3].toLowerCase() : "";
-
         if (summary.contains("validation") || description.contains("validation")) {
             suggestion = "Check and update validation logic as per requirements.";
         } else if (summary.contains("null pointer") || description.contains("null pointer")) {
@@ -165,6 +203,36 @@ public class DefectProcessingAgent {
             suggestion = "Investigate: " + summary + (description.isEmpty() ? "" : ". " + description);
         }
         return "Suggested update: " + suggestion;
+    }
+
+    /**
+     * Calls Azure OpenAI REST API for chat completion.
+     */
+    private String callOpenAIChatCompletion(String bugDescription, String systemPrompt) {
+        try {
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            String url = openAIEndpoint + "/openai/deployments/" + openAIDeploymentName + "/chat/completions?api-version=" + openAIApiVersion;
+            java.util.Map<String, Object> body = new java.util.HashMap<>();
+            java.util.List<java.util.Map<String, String>> messages = new java.util.ArrayList<>();
+            messages.add(java.util.Map.of("role", "system", "content", systemPrompt));
+            messages.add(java.util.Map.of("role", "user", "content", bugDescription));
+            body.put("messages", messages);
+            body.put("max_tokens", 512);
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("Content-Type", "application/json");
+            headers.set("api-key", openAIApiKey);
+            org.springframework.http.HttpEntity<java.util.Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(body, headers);
+            org.springframework.http.ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getBody());
+                if (root.has("choices") && root.get("choices").isArray() && root.get("choices").size() > 0) {
+                    return root.get("choices").get(0).get("message").get("content").asText();
+                }
+            }
+        } catch (Exception e) {
+            log.error("OpenAI REST API error: {}", e.getMessage(), e);
+        }
+        return null;
     }
 
     /**

@@ -14,8 +14,7 @@ public class RiskService {
 
     // TODO getRiskFactor method implementation.
     public double getRiskFactor(int clientId) {
-    Risk risk = riskRepository.findInvoiceCountAndTotalByClientId(clientId);
-    var invoiceTotal = risk.getInvoiceTotal().doubleValue();
-    return invoiceTotal / risk.getInvoiceCount() * 5;
-   }
+        // Custom query removed for troubleshooting
+        return 0.0;
+    }
 }

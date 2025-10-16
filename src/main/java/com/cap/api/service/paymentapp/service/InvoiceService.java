@@ -16,7 +16,9 @@ public class InvoiceService {
     private InvoiceRepository invoiceRepository;
 
     public List<Invoice> getUnpaidInvoicesForClients(int clientId) {
-        var invoiceList =  invoiceRepository.findUnpaidInvoicesForClient(clientId);
-        return  invoiceList;
+        var allInvoices = invoiceRepository.findAll();
+        return allInvoices.stream()
+            .filter(i -> i.getClientId() == clientId && i.getPaymentTotal().compareTo(java.math.BigDecimal.ZERO) == 0)
+            .toList();
     }
 }

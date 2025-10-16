@@ -15,13 +15,7 @@ import java.util.List;
 
 public interface InvoiceRepository extends JpaRepository<Invoice, Integer> {
 
-    @Modifying
-    @Transactional
-    @Query("UPDATE Invoice i SET i.paymentTotal = :paymentTotal, i.paymentDate = :paymentDate WHERE i.invoiceId = :invoiceId")
-    void updatePaymentDetails(@Param("invoiceId") int invoiceId, @Param("paymentTotal") BigDecimal paymentTotal, @Param("paymentDate") LocalDate paymentDate);
 
-    @Query("SELECT i FROM Invoice i WHERE i.clientId = :clientId AND i.paymentTotal = 0")
-    List<Invoice> findUnpaidInvoicesForClient(@Param("clientId") int clientId);
 
 
 }

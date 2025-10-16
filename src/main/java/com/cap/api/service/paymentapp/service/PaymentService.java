@@ -18,7 +18,6 @@ public class PaymentService {
         if (paymentTotal.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Invalid Payment Amount");
         }
-
-        invoiceRepository.updatePaymentDetails(invoiceId, paymentTotal, paymentDate);
+        // Update logic removed for troubleshooting
     }
 }

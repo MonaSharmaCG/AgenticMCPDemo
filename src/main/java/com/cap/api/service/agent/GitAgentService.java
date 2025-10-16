@@ -160,6 +160,21 @@ public class GitAgentService {
         return resp.toString();
     }
 
+    /**
+     * Commits LLM-generated code fix to the repository.
+     * @param repoPath Path to repo
+     * @param filePath Path to file to update
+     * @param codeFix  Code to write
+     * @param commitMessage Commit message
+     */
+    public void commitLLMCodeFix(String repoPath, String filePath, String codeFix, String commitMessage) throws Exception {
+        File file = new File(repoPath, filePath);
+        java.nio.file.Files.write(file.toPath(), codeFix.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        runCommand(new File(repoPath), "git", "add", filePath);
+        runCommand(new File(repoPath), "git", "commit", "-m", commitMessage);
+        // Optionally push, create PR, etc.
+    }
+
     private String joinReviewers(String csv) {
         String[] parts = csv.split(",");
         StringBuilder sb = new StringBuilder();

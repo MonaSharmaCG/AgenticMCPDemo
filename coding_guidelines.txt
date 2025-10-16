@@ -1,0 +1,12 @@
+# Coding Guidelines for Automated Code Review
+
+1. Follow Java naming conventions for classes, methods, and variables.
+2. Use meaningful variable and method names.
+3. Add Javadoc comments for public classes and methods.
+4. Avoid magic numbers; use constants.
+5. Handle exceptions properly and log errors.
+6. Write unit tests for new code and bug fixes.
+7. Ensure code is thread-safe where applicable.
+8. Remove unused imports and variables.
+9. Optimize for readability and maintainability.
+10. Follow SOLID principles and design patterns where appropriate.

@@ -28,3 +28,501 @@ Suggested fix for bug: SCRUM-665|add logger in controller layer at error level|T
 Fix suggestion: Suggested update: Investigate: add logger in controller layer at error level
 Suggested fix for bug: SCRUM-666|check claimdate field and update the format to utc|To Do|||
 Fix suggestion: Suggested update: Investigate: check claimdate field and update the format to utc
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+LLM suggestion: LLM suggestion: **Code Suggestion**:
+```java
+// Update the method where policy amount is retrieved or set
+public void setPolicyAmount(BigDecimal amount) {
+    if (amount != null && amount.scale() > 2) {
+        this.policyAmount = amount.setScale(2, RoundingMode.HALF_UP); // Ensure two decimal places
+    } else {
+        this.policyAmount = amount; 
+    }
+}
+```
+
+**Rationale**:
+The issue likely stems from inconsistent formatting or rounding of the `policyAmount` field. The fix ensures that the policy amount always has two decimal places, preventing mismatches when comparing, displaying, or storing the field.
+LLM code fix:
+```java
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.compareTo(BigDecimal.ZERO) >= 0) {
+            this.policyAmount = policyAmount;
+        } else {
+            throw new IllegalArgumentException("Policy amount must be a non-negative value.");
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||||||||||||||
+LLM suggestion: LLM suggestion: ### Code Suggestion:
+
+Find the relevant code snippet where the policy amount is being retrieved, processed, or displayed. Update the logic to ensure proper data type usage, formatting, and localization.
+
+Example fix:
+
+```java
+// Assuming the issue is caused by number formatting or type mismatch
+
+import java.text.NumberFormat;
+import java.util.Locale;
+
+// Before displaying or processing the policy amount
+double policyAmount = fetchPolicyAmountFromDatabase(policyId); // Example method
+NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US);
+
+String formattedPolicyAmount = currencyFormatter.format(policyAmount);
+
+// Ensure this formatted value is used consistently wherever displayed or verified
+displayPolicyAmount(formattedPolicyAmount); // Example method
+```
+
+### Rationale:
+
+The issue might be due to improper handling of the `policy amount` (e.g., formatting, data type mismatch, or locale inconsistencies). By formatting it correctly and ensuring type safety, we can fix both visual and calculation-related mismatches. Ensure you replace `fetchPolicyAmountFromDatabase` and `displayPolicyAmount` with your actual method implementations.
+LLM code fix:
+```java
+// Fix for SCRUM-617: Ensure policy amount field is correctly assigned and validated
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount == null || policyAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Policy amount must be a non-negative value.");
+        }
+        this.policyAmount = policyAmount;
+    }
+}
+```
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||||||||||||
+LLM suggestion: LLM suggestion: ### Code Suggestion:
+```java
+// Ensure the policy amount field is consistently formatted when retrieved and displayed.
+BigDecimal policyAmount = policy.getAmount();
+if (policyAmount != null) {
+    DecimalFormat format = new DecimalFormat("#,##0.00");
+    String formattedAmount = format.format(policyAmount);
+    policy.setDisplayAmount(formattedAmount); // Assuming there's a separate field for formatted display.
+} else {
+    policy.setDisplayAmount("0.00");
+}
+```
+
+### Rationale:
+The problem likely arises from inconsistent display or retrieval formatting of the policy amount value. Using a `DecimalFormat` ensures uniform formatting (e.g., two decimal places with a comma as a thousands separator). Setting this formatted value in a dedicated `displayAmount` field avoids conflicts in backend operations that may rely on the raw numeric value for calculations.
+LLM code fix:
+```java
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.scale() > 2) {
+            this.policyAmount = policyAmount.setScale(2, RoundingMode.HALF_UP);
+        } else {
+            this.policyAmount = policyAmount;
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-650|test defect to check polling|To Do|||||||
+LLM suggestion: LLM suggestion: It appears you provided a ticket description without any specifics about the code-related defect. Please provide the code with the area of concern, and I will help you debug and fix it.
+LLM code fix:
+```java
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class PollingService {
+
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+    public void startPolling(Runnable pollingTask, int intervalInSeconds) {
+        scheduler.scheduleAtFixedRate(pollingTask, 0, intervalInSeconds, TimeUnit.SECONDS);
+    }
+
+    public void stopPolling() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    public static void main(String[] args) {
+        PollingService pollingService = new PollingService();
+        
+        Runnable pollingTask = () -> {
+            try {
+                System.out.println("Polling... " + System.currentTimeMillis());
+                // Perform polling logic here
+            } catch (Exception e) {
+                System.err.println("Error during polling: " + e.getMessage());
+            }
+        };
+
+        pollingService.startPolling(pollingTask, 5);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(pollingService::stopPolling));
+    }
+}
+```
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+LLM suggestion: LLM suggestion: ### Code Suggestion:
+```java
+// Ensure that the policy amount field uses a consistent data type
+// and properly formats the value during data conversion.
+
+private BigDecimal policyAmount;
+
+// Setter Method
+public void setPolicyAmount(String amount) {
+    try {
+        this.policyAmount = new BigDecimal(amount.trim()); // Ensures consistent handling of format
+    } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("Invalid policy amount format: " + amount);
+    }
+}
+
+// Getter Method
+public String getPolicyAmount() {
+    return policyAmount != null ? policyAmount.toPlainString() : "0.00"; // Converts to consistent string output
+}
+```
+
+### Rationale:
+The issue likely stems from mismatched data types or improper handling of formatting during conversions. Using `BigDecimal` ensures precise numerical representation, avoids floating-point rounding errors, and provides consistent formatting for monetary values. Adding validations and null checks reduces the risk of further issues.
+LLM code fix:
+```java
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.compareTo(BigDecimal.ZERO) >= 0) {
+            this.policyAmount = policyAmount;
+        } else {
+            throw new IllegalArgumentException("Policy amount must be non-negative");
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||||||||||||||||
+LLM suggestion: LLM suggestion: ```java
+// Existing Code Issue: Policy amount field might be mismatched due to a type conversion or improper formatting.
+
+import java.math.BigDecimal;
+
+public class Policy {
+    private BigDecimal policyAmount; // Ensure BigDecimal is used for precise arithmetic operations
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(String policyAmount) {
+        try {
+            // Fix: Parse input as a BigDecimal to avoid precision loss or mismatch
+            this.policyAmount = new BigDecimal(policyAmount.trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid policy amount format: " + policyAmount);
+        }
+    }
+}
+```
+
+**Rationale**: The change ensures that the `policyAmount` is stored and processed using `BigDecimal`, which is well-suited for precise financial calculations. Parsing the string input and handling possible format issues ensures consistency and avoids mismatches in the field value.
+LLM code fix:
+```java
+public class Policy {
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount == null || policyAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Policy amount must be non-null and non-negative.");
+        }
+        this.policyAmount = policyAmount;
+    }
+}
+```
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||||||||||||||
+LLM suggestion: LLM suggestion: ### Code Suggestion:
+```java
+// Ensure that the `policyAmount` field matches the expected format and precision
+BigDecimal expectedPolicyAmount = new BigDecimal("10000.00"); // Example value, replace as per logic
+BigDecimal actualPolicyAmount = policy.getPolicyAmount();
+
+if (expectedPolicyAmount.compareTo(actualPolicyAmount) != 0) {
+    throw new IllegalArgumentException("Policy amount mismatch: expected " + expectedPolicyAmount + ", found " + actualPolicyAmount);
+}
+```
+
+### Rationale:
+The mismatch issue could be due to precision or formatting inconsistencies with the `policyAmount` field. Use `BigDecimal` for monetary values to ensure accurate comparisons, and validate that the value matches the expected amount.
+LLM code fix:
+```java
+public class Policy {
+
+    private BigDecimal policyAmount;
+
+    public BigDecimal getPolicyAmount() {
+        return policyAmount;
+    }
+
+    public void setPolicyAmount(BigDecimal policyAmount) {
+        if (policyAmount != null && policyAmount.scale() > 2) {
+            // Ensure policyAmount has a maximum of 2 decimal places
+            this.policyAmount = policyAmount.setScale(2, RoundingMode.HALF_UP);
+        } else {
+            this.policyAmount = policyAmount;
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-650|test defect to check polling|To Do|||||||||
+LLM suggestion: LLM suggestion: The defect description provided lacks technical detail about what is broken or where the issue lies in the code. Could you clarify or provide more context (e.g., the code snippet or area of concern)? This will enable me to give you an accurate fix.
+LLM code fix:
+```java
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+public class PollingTest {
+
+    private static final int POLLING_INTERVAL_MS = 500;
+    private static final int TIMEOUT_MS = 10000;
+    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
+    
+    public static void main(String[] args) {
+        try {
+            boolean isSuccessful = poll(() -> checkCondition());
+            if (isSuccessful) {
+                System.out.println("Condition met successfully!");
+            } else {
+                System.out.println("Timeout reached. Condition not met.");
+            }
+        } finally {
+            executor.shutdown();
+        }
+    }
+    
+    private static boolean poll(CheckCondition condition) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < TIMEOUT_MS) {
+            if (condition.evaluate()) {
+                return true;
+            }
+            try {
+                Thread.sleep(POLLING_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private static boolean checkCondition() {
+        // Replace with the actual condition check logic
+        return Math.random() > 0.8;
+    }
+    
+    @FunctionalInterface
+    interface CheckCondition {
+        boolean evaluate();
+    }
+}
+```
+Suggested fix for bug: SCRUM-651|test ticket, fix logging issues|To Do|||||||
+LLM suggestion: LLM suggestion: ```java
+import java.util.logging.Logger;
+
+public class LoggingFixExample {
+    private static final Logger LOGGER = Logger.getLogger(LoggingFixExample.class.getName());
+
+    public void exampleMethod() {
+        try {
+            // Some logic
+        } catch (Exception e) {
+            LOGGER.severe("An error occurred: " + e.getMessage());
+            LOGGER.log(java.util.logging.Level.SEVERE, "Exception details", e); // Added complete stack trace
+        }
+    }
+}
+```
+
+**Rationale:** 
+The logging issue may stem from incomplete or inconsistent log messages. This code fix ensures that both a readable error message and complete stack trace are logged using `LOGGER.log`. It aids in troubleshooting by providing detailed context for the encountered exception.
+LLM code fix:
+```java
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+public class LogHandler {
+
+    private static final Logger LOGGER = Logger.getLogger(LogHandler.class.getName());
+
+    public void processRequest(String request) {
+        if (request == null || request.isEmpty()) {
+            LOGGER.log(Level.WARNING, "Received an invalid request: {0}", request);
+            return;
+        }
+
+        try {
+            LOGGER.log(Level.INFO, "Processing request: {0}", request);
+            // Add request processing logic here
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred while processing request: {0}", request);
+            LOGGER.log(Level.SEVERE, "Exception details: ", e);
+        }
+    }
+}
+```
+Suggested fix for bug: SCRUM-652|Any payment less than 1$ make it as an invalid payment instead of less than 0$|To Do|||||||
+LLM suggestion: LLM suggestion: **Code Suggestion:**
+
+```java
+public boolean isValidPayment(double payment) {
+    return payment >= 1.0;
+}
+```
+
+**Rationale:**
+This change updates the logic to enforce a minimum payment threshold of 1 dollar as the condition for a valid payment, modifying the prior threshold of 0 dollars. This aligns with the defect description requirements.
+LLM code fix:
+```java
+public boolean isValidPayment(double payment) {
+    return payment >= 1.0;
+}
+```
+Suggested fix for bug: SCRUM-665|add logger in controller layer at error level|To Do|||||||
+LLM suggestion: LLM suggestion: **Code Fix Suggestion:**
+
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+// Add Logger instance
+private static final Logger logger = LoggerFactory.getLogger(YourControllerClass.class);
+
+@PostMapping("/example")
+public ResponseEntity<String> exampleMethod(@RequestBody ExampleRequest request) {
+    try {
+        // Business logic
+    } catch (Exception ex) {
+        // Log error at error level
+        logger.error("Error occurred in exampleMethod: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred.");
+    }
+}
+```
+
+**Rationale:**
+1. `Logger` instance added using SLF4J, a widely-used logging framework.
+2. Logs the exception message and stack trace at ERROR level for better traceability.
+3. Placed the logger in a `catch` block to ensure it captures and logs errors effectively.
+LLM code fix:
+```java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class ControllerExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(ControllerExceptionHandler.class);
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleException(Exception ex) {
+        logger.error("An error occurred: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .body("An unexpected error occurred. Please try again later.");
+    }
+}
+```
+Suggested fix for bug: SCRUM-666|check claimdate field and update the format to utc|To Do|||||||
+LLM suggestion: LLM suggestion: ### Code Suggestion:
+```java
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class Claim {
+    private String claimDate;
+
+    public String getClaimDate() {
+        return claimDate;
+    }
+
+    public void setClaimDate(String claimDate) {
+        // Assuming the input is local time in ISO 8601 format
+        ZonedDateTime localDateTime = ZonedDateTime.parse(claimDate);
+        this.claimDate = localDateTime.withZoneSameInstant(UTC).format(DateTimeFormatter.ISO_INSTANT);
+    }
+}
+```
+
+### Rationale:
+This code updates the `claimDate` to the standardized UTC format, ensuring proper handling of time zones by converting it to UTC (`DateTimeFormatter.ISO_INSTANT`).
+LLM code fix:
+```java
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+
+public class Claim {
+    private String claimDate; // Assuming the claimDate is a String
+
+    public String getClaimDate() {
+        return claimDate;
+    }
+
+    public void setClaimDate(String claimDate) {
+        this.claimDate = formatDateToUTC(claimDate);
+    }
+
+    private String formatDateToUTC(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            return dateStr;
+        }
+
+        SimpleDateFormat sourceFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat utcFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+        utcFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            Date date = sourceFormat.parse(dateStr);
+            return utcFormat.format(date);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null; // Or handle the error based on requirements
+        }
+    }
+}
+```
