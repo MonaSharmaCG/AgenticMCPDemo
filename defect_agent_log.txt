@@ -26,3 +26,5 @@ Suggested fix for bug: SCRUM-652|Any payment less than 1$ make it as an invalid 
 Fix suggestion: Suggested update: Investigate: any payment less than 1$ make it as an invalid payment instead of less than 0$
 Suggested fix for bug: SCRUM-665|add logger in controller layer at error level|To Do|||||
 Fix suggestion: Suggested update: Investigate: add logger in controller layer at error level
+Suggested fix for bug: SCRUM-666|check claimdate field and update the format to utc|To Do|||
+Fix suggestion: Suggested update: Investigate: check claimdate field and update the format to utc
