@@ -44,3 +44,27 @@ Suggested fix for bug: SCRUM-669|testing|To Do|||||
 Fix suggestion: Suggested update: Investigate: testing
 Suggested fix for bug: SCRUM-670|Add additional field beneficiary in Claim model class|To Do|||
 Fix suggestion: Suggested update: Investigate: add additional field beneficiary in claim model class
+Suggested fix for bug: SCRUM-615|policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-617|CLONE - policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-618|CLONE - policy amount field mismatch issue|To Do|||||||||||||||||||||||||||||
+Fix suggestion: Suggested update: Check field mapping and data consistency between systems.
+Suggested fix for bug: SCRUM-650|test defect to check polling|To Do|||||||||||||||||||||
+Fix suggestion: Suggested update: Investigate: test defect to check polling
+Suggested fix for bug: SCRUM-651|test ticket, fix logging issues|To Do|||||||||||||||||||
+Fix suggestion: Suggested update: Investigate: test ticket, fix logging issues
+Suggested fix for bug: SCRUM-652|Any payment less than 1$ make it as an invalid payment instead of less than 0$|To Do|||||||||||||||||||
+Fix suggestion: Suggested update: Investigate: any payment less than 1$ make it as an invalid payment instead of less than 0$
+Suggested fix for bug: SCRUM-665|add logger in controller layer at error level|To Do|||||||||||||||||||
+Fix suggestion: Suggested update: Investigate: add logger in controller layer at error level
+Suggested fix for bug: SCRUM-666|check claimdate field and update the format to utc|To Do|||||||||||||||||||
+Fix suggestion: Suggested update: Investigate: check claimdate field and update the format to utc
+Suggested fix for bug: SCRUM-667|add loggers with level error for prod deployment, in controller layers|To Do|||||||||||||
+Fix suggestion: Suggested update: Investigate: add loggers with level error for prod deployment, in controller layers
+Suggested fix for bug: SCRUM-668|test defect|To Do|||||
+Fix suggestion: Suggested update: Investigate: test defect
+Suggested fix for bug: SCRUM-669|testing|To Do|||||
+Fix suggestion: Suggested update: Investigate: testing
+Suggested fix for bug: SCRUM-670|Add additional field beneficiary in Claim model class|To Do|||||
+Fix suggestion: Suggested update: Investigate: add additional field beneficiary in claim model class
