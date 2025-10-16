@@ -4,9 +4,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import jakarta.annotation.PostConstruct;
-
 import java.nio.file.Path;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.cap.api.service.agent.GitAgentService;
 import org.slf4j.Logger;
@@ -19,7 +22,7 @@ import org.slf4j.LoggerFactory;
 public class DefectProcessingAgent {
     private static final Logger log = LoggerFactory.getLogger(DefectProcessingAgent.class);
     // Track last seen bug suggestions by issue key
-    private final java.util.Map<String, String> lastBugSuggestions = new java.util.HashMap<>();
+    private final Map<String, String> lastBugSuggestions = new HashMap<>();
     @Value("${jira.url}")
     private String jiraUrl;
     @Value("${jira.email}")
@@ -32,20 +35,41 @@ public class DefectProcessingAgent {
     @Autowired(required = false)
     private GitAgentService gitAgentService;
 
+    @Value("${github.token:}")
+    private String githubToken;
+
+    private static final String PROCESSED_ISSUES_FILE = "agent_generated/processed_issues.txt";
+    private Set<String> processedIssues = new HashSet<>();
+
     @PostConstruct
     public void init() {
         if (jiraEmail != null && jiraApiToken != null) {
             String auth = jiraEmail + ":" + jiraApiToken;
             encodedAuth = java.util.Base64.getEncoder().encodeToString(auth.getBytes());
         }
+        loadProcessedIssues();
     }
+
     /**
      * Main method for standalone execution.
      */
     public static void main(String[] args) {
+        // For demo only: Spring context should be used in real app
         DefectProcessingAgent agent = new DefectProcessingAgent();
         agent.processDefects();
     }
+
+    public void loadProcessedIssues() {
+        try {
+            Path path = Path.of(PROCESSED_ISSUES_FILE);
+            if (java.nio.file.Files.exists(path)) {
+                processedIssues.addAll(java.nio.file.Files.readAllLines(path));
+            }
+        } catch (Exception e) {
+            log.warn("Could not load processed issues: {}", e.getMessage());
+        }
+    }
+
     /**
      * Fetches list of bugs from JIRA using AgenticClientUtil and local file for demo.
      */
@@ -274,7 +298,45 @@ public class DefectProcessingAgent {
      */
     public void processDefects() {
         // keep for backwards compatibility: single-run invocation
-        processDefectsOnce();
+            List<String> bugs = fetchJiraBugs();
+            analyzeBugs(bugs);
+            for (String bug : bugs) {
+                String issueKey = extractIssueKey(bug);
+                if (issueKey != null && !isProcessed(issueKey)) {
+                    String branchName = createBranchName(issueKey, bug);
+                    gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
+                    markProcessed(issueKey);
+                }
+            }
+        }
+
+    private String createBranchName(String issueKey, String bugDesc) {
+        String shortDesc = bugDesc.length() > 20 ? bugDesc.substring(0, 20).replaceAll("[^a-zA-Z0-9]", "-") : bugDesc.replaceAll("[^a-zA-Z0-9]", "-");
+        return "fix/" + issueKey + "-" + shortDesc;
+    }
+
+    private String extractIssueKey(String bugDesc) {
+        // Try to extract JIRA issue key (e.g., SCRUM-123) from bug description
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("([A-Z]+-\\d+)").matcher(bugDesc);
+        if (m.find()) {
+            return m.group(1);
+        }
+        return null;
+    }
+
+    private boolean isProcessed(String issueKey) {
+        return processedIssues.contains(issueKey);
+    }
+
+    private void markProcessed(String issueKey) {
+        processedIssues.add(issueKey);
+        try {
+            Path path = Path.of(PROCESSED_ISSUES_FILE);
+            java.nio.file.Files.createDirectories(path.getParent());
+            java.nio.file.Files.write(path, processedIssues);
+        } catch (Exception e) {
+            log.warn("Could not persist processed issue {}: {}", issueKey, e.getMessage());
+        }
     }
 
     /**
@@ -316,18 +378,16 @@ public class DefectProcessingAgent {
                     String repoPath = "."; // root of repo
                     String branch = "agent/" + java.time.Instant.now().getEpochSecond();
                     String msg = "chore(agent): apply suggestions from MCP agent";
-                    // token should be provided via environment variable GITHUB_TOKEN or configured in service
-                    String token = System.getenv("GITHUB_TOKEN");
-                    if (token != null && !token.isEmpty()) {
+                    if (githubToken != null && !githubToken.isEmpty()) {
                         try {
                             String reviewers = System.getenv("AUTO_REVIEWERS");
-                            String prResp = gitAgentService.commitPushAndCreatePr(repoPath, branch, msg, "main", "Automated changes from Agentic MCP", "Agent generated suggestions", reviewers == null ? "" : reviewers);
+                            String prResp = gitAgentService.commitPushAndCreatePr(repoPath, branch, msg, "main", "Automated changes from Agentic MCP", "Agent generated suggestions", reviewers == null ? "" : reviewers, githubToken);
                             log.info("PR Response: {}", prResp == null ? "(empty)" : prResp.substring(0, Math.min(prResp.length(), 400)));
                         } catch (Exception ex) {
                             log.error("Failed to push/create PR: {}", ex.getMessage(), ex);
                         }
                     } else {
-                    log.info("GITHUB_TOKEN not set; skipping automated push.");
+                        log.info("GitHub token not set in application.yaml; skipping automated push.");
                     }
                 }
             } catch (Exception e) {
