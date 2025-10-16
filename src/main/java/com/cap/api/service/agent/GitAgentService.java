@@ -1,5 +1,6 @@
 package com.cap.api.service.agent;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,11 +12,44 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class GitAgentService {
+    @Value("${github.token:}")
+    private String githubToken;
 
     private static final Logger log = LoggerFactory.getLogger(GitAgentService.class);
+
+    @PostConstruct
+    public void logToken() {
+        if (githubToken != null && !githubToken.isEmpty()) {
+            log.info("GitHub token successfully injected from application.yaml");
+        } else {
+            log.warn("GitHub token NOT injected from application.yaml");
+        }
+    }
+
+    /**
+     * Creates a branch from main, applies the fix, pushes, and creates a PR.
+     */
+    public void createBranchFromMainAndApplyFix(String branchName, String bugDesc) {
+        try {
+            File repoDir = new File(".");
+            runCommand(repoDir, "git", "checkout", "main");
+            runCommand(repoDir, "git", "pull", "origin", "main");
+            runCommand(repoDir, "git", "checkout", "-b", branchName);
+            // Apply fix for bugDesc (implement actual code change logic here)
+            // For demo, touch a file or log
+            runCommand(repoDir, "git", "add", ".");
+            runCommand(repoDir, "git", "commit", "-m", "Fix for " + branchName);
+            runCommand(repoDir, "git", "push", "-u", "origin", branchName);
+            // Create PR (reuse commitPushAndCreatePr logic or call GitHub API)
+            // Optionally trigger GitHub Actions workflow if needed
+        } catch (Exception e) {
+            log.error("Failed to create branch and apply fix: {}", e.getMessage(), e);
+        }
+    }
 
     private int runCommand(File dir, String... command) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(command);
@@ -35,7 +69,7 @@ public class GitAgentService {
      * Commit all changes, create a branch, push to remote and create PR via GitHub API.
      * The method expects GITHUB_TOKEN in environment for authentication.
      */
-    public String commitPushAndCreatePr(String repoPath, String branchName, String commitMessage, String baseBranch, String prTitle, String prBody, String reviewersCsv) throws Exception {
+    public String commitPushAndCreatePr(String repoPath, String branchName, String commitMessage, String baseBranch, String prTitle, String prBody, String reviewersCsv, String githubToken) throws Exception {
         File repoDir = new File(repoPath);
         // git checkout -b branchName
         int rc = runCommand(repoDir, "git", "checkout", "-b", branchName);
@@ -45,9 +79,10 @@ public class GitAgentService {
         // git commit -m commitMessage
         runCommand(repoDir, "git", "commit", "-m", commitMessage, "--allow-empty");
         // git push origin branchName
-        String token = System.getenv("GITHUB_TOKEN");
+        // Use token from application.yaml
+        String token = githubToken;
         if (token == null || token.isEmpty()) {
-            throw new RuntimeException("GITHUB_TOKEN is required to push and create PR");
+            throw new RuntimeException("GitHub token is required to push and create PR");
         }
         // update remote url to include token temporarily
         // derive remote url
