@@ -122,3 +122,5 @@ Suggested fix for bug: SCRUM-671|add time taken in each method|To Do|||||||||
 Fix suggestion: Suggested update: Investigate: add time taken in each method
 Suggested fix for bug: SCRUM-672|test defect|To Do|||||||
 Fix suggestion: Suggested update: Investigate: test defect
+Suggested fix for bug: SCRUM-673|test llm integration code amount as double instead of int|To Do|||
+Fix suggestion: Suggested update: Investigate: test llm integration code amount as double instead of int
