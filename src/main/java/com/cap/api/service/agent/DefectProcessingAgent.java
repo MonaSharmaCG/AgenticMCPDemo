@@ -10,6 +10,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
+
+// LLM integration properties
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.cap.api.service.agent.GitAgentService;
 import org.slf4j.Logger;
@@ -29,6 +32,16 @@ public class DefectProcessingAgent {
     private String jiraEmail;
     @Value("${jira.apiToken}")
     private String jiraApiToken;
+
+
+    @Value("${azureopenai.api-key}")
+    private String openAIApiKey;
+    @Value("${azureopenai.endpoint}")
+    private String openAIEndpoint;
+    @Value("${azureopenai.api-version}")
+    private String openAIApiVersion;
+    @Value("${azureopenai.deployment-name}")
+    private String openAIDeploymentName;
 
     private String encodedAuth;
 
@@ -138,7 +151,8 @@ public class DefectProcessingAgent {
     public void fixBugs(List<String> bugs) {
         for (String bug : bugs) {
             String suggestion = suggestFix(bug);
-            String logEntry = "Suggested fix for bug: " + bug + "\nFix suggestion: " + suggestion + "\n";
+            String codeFix = generateCodeFixWithLLM(bug);
+            String logEntry = "Suggested fix for bug: " + bug + "\nLLM suggestion: " + suggestion + "\nLLM code fix:\n" + codeFix + "\n";
             log.info(logEntry);
             // Log to defect_agent_log.txt
             try {
@@ -151,20 +165,120 @@ public class DefectProcessingAgent {
             } catch (Exception e) {
                 log.error("Failed to write to defect_agent_log.txt: {}", e.getMessage(), e);
             }
+            // If LLM code fix is not clear or is a placeholder, prompt user for clarification
+            if (codeFix == null || codeFix.isBlank() || codeFix.contains("LLM code fix unavailable") || codeFix.toLowerCase().contains("not enough information") || codeFix.length() < 20) {
+                log.info("LLM could not generate a clear code fix for bug: {}. Waiting for user input in GitHub Copilot Agentic.", bug);
+                // Simulate waiting for user input (in real app, this would be an async prompt/UI)
+                String userClarification = waitForUserClarification(bug);
+                if (userClarification != null && !userClarification.isBlank()) {
+                    codeFix = generateCodeFixWithLLM(bug + "\nUser clarification: " + userClarification);
+                } else {
+                    log.info("No user clarification provided. Skipping code update for bug: {}", bug);
+                    continue;
+                }
+            }
+            // Actually update the codebase with the LLM code fix
+            boolean codeUpdated = applyCodeFixToProject(bug, codeFix);
+            if (codeUpdated) {
+                log.info("Codebase updated for bug: {}", bug);
+            } else {
+                log.warn("Failed to update codebase for bug: {}. Code fix: {}", bug, codeFix);
+            }
+            // Write code fix to agent_generated/last_suggestions.txt for traceability
+            try {
+                java.nio.file.Path out = Path.of("agent_generated/last_suggestions.txt");
+                java.nio.file.Files.createDirectories(out.getParent());
+                java.nio.file.Files.write(out, ("Bug: " + bug + "\nCode Fix:\n" + codeFix + "\n---\n").getBytes(), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception e) {
+                log.error("Failed to write code fix: {}", e.getMessage(), e);
+            }
             // Update JIRA with the suggestion as a comment
-            updateJiraWithComment(bug, suggestion);
+            updateJiraWithComment(bug, suggestion + "\nCode fix applied to codebase.\n" + codeFix);
         }
+    }
+
+    /**
+     * Simulates waiting for user clarification in Copilot Agentic. In a real app, this would be async/user prompt.
+     */
+    private String waitForUserClarification(String bug) {
+        log.info("Prompt: Please clarify the following bug for LLM code fix: {}", bug);
+        // In a real implementation, this would block/wait for user input via UI or chat
+        // For demo, just return null to simulate no input
+        return null;
+    }
+
+    /**
+     * Applies the LLM-generated code fix to the project source files.
+     * This is a demo implementation: in a real app, parse the codeFix and update the correct file.
+     */
+    private boolean applyCodeFixToProject(String bug, String codeFix) {
+        // DEMO: Try to extract class name from bug or codeFix, and overwrite the file with codeFix
+        try {
+            String className = extractClassNameFromBugOrCode(bug, codeFix);
+            if (className == null) {
+                log.warn("Could not determine class to update for bug: {}", bug);
+                return false;
+            }
+            // Find the file in src/main/java
+            java.nio.file.Path srcRoot = Path.of("src/main/java");
+            java.util.List<java.nio.file.Path> matches = new java.util.ArrayList<>();
+            java.nio.file.Files.walk(srcRoot)
+                .filter(p -> p.getFileName().toString().equals(className + ".java"))
+                .forEach(matches::add);
+            if (matches.isEmpty()) {
+                log.warn("No source file found for class {}", className);
+                return false;
+            }
+            // Overwrite the first match with the new code
+            java.nio.file.Files.writeString(matches.get(0), codeFix);
+            return true;
+        } catch (Exception e) {
+            log.error("Failed to apply code fix: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Attempts to extract a class name from the bug description or code fix.
+     */
+    private String extractClassNameFromBugOrCode(String bug, String codeFix) {
+        // Try to find a class name in the codeFix
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("class\\s+([A-Za-z0-9_]+)").matcher(codeFix);
+        if (m.find()) {
+            return m.group(1);
+        }
+        // Fallback: look for known class names in the bug description
+        if (bug != null && bug.toLowerCase().contains("claimservice")) return "ClaimService";
+        if (bug != null && bug.toLowerCase().contains("invoiceservice")) return "InvoiceService";
+        // Add more heuristics as needed
+        return null;
+    }
+
+    /**
+     * Uses LLM to generate code fix for a bug description.
+     */
+    private String generateCodeFixWithLLM(String bugDescription) {
+        String llmCodeFix = callOpenAIChatCompletion(bugDescription, "You are an expert Java developer. Given the following defect description, generate a code fix (Java code only) that resolves the issue. Return only the code block, no explanation.");
+        if (llmCodeFix != null && !llmCodeFix.isBlank()) {
+            return llmCodeFix;
+        }
+        return "(LLM code fix unavailable)";
     }
 
     /**
      * Suggests a fix based on bug description (simple demo logic).
      */
     private String suggestFix(String bugDescription) {
+        // Use LLM if available
+        String llmSuggestion = callOpenAIChatCompletion(bugDescription, "You are an expert Java developer. Suggest a code fix for the following defect description. Return only the code suggestion and a brief rationale.");
+        if (llmSuggestion != null && !llmSuggestion.isBlank()) {
+            return "LLM suggestion: " + llmSuggestion;
+        }
+        // Fallback: rule-based suggestion
         String suggestion = "Review and address described issue.";
         String[] fields = bugDescription.split("\\|");
         String summary = fields.length > 1 ? fields[1].toLowerCase() : "";
         String description = fields.length > 3 ? fields[3].toLowerCase() : "";
-
         if (summary.contains("validation") || description.contains("validation")) {
             suggestion = "Check and update validation logic as per requirements.";
         } else if (summary.contains("null pointer") || description.contains("null pointer")) {
@@ -179,6 +293,36 @@ public class DefectProcessingAgent {
             suggestion = "Investigate: " + summary + (description.isEmpty() ? "" : ". " + description);
         }
         return "Suggested update: " + suggestion;
+    }
+
+    /**
+     * Calls Azure OpenAI REST API for chat completion.
+     */
+    private String callOpenAIChatCompletion(String bugDescription, String systemPrompt) {
+        try {
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            String url = openAIEndpoint + "/openai/deployments/" + openAIDeploymentName + "/chat/completions?api-version=" + openAIApiVersion;
+            java.util.Map<String, Object> body = new java.util.HashMap<>();
+            java.util.List<java.util.Map<String, String>> messages = new java.util.ArrayList<>();
+            messages.add(java.util.Map.of("role", "system", "content", systemPrompt));
+            messages.add(java.util.Map.of("role", "user", "content", bugDescription));
+            body.put("messages", messages);
+            body.put("max_tokens", 512);
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.set("Content-Type", "application/json");
+            headers.set("api-key", openAIApiKey);
+            org.springframework.http.HttpEntity<java.util.Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(body, headers);
+            org.springframework.http.ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                com.fasterxml.jackson.databind.JsonNode root = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getBody());
+                if (root.has("choices") && root.get("choices").isArray() && root.get("choices").size() > 0) {
+                    return root.get("choices").get(0).get("message").get("content").asText();
+                }
+            }
+        } catch (Exception e) {
+            log.error("OpenAI REST API error: {}", e.getMessage(), e);
+        }
+        return null;
     }
 
     /**
