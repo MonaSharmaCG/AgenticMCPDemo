@@ -50,6 +50,18 @@ jobs:
               pull_number: prNumber,
             });
             let violations = [];
+            const camelCaseRegex = /\b([a-z]+[A-Z][a-zA-Z0-9]*)\b/g;
+            const constantRegex = /static final [A-Z0-9_]+/g;
+            const javadocRegex = /\*\*\s*\n(\s*\*.*\n)+\s*\*\//g;
+            const publicFieldRegex = /public\s+[^\(]*;/g;
+            const deprecatedRegex = /@Deprecated|deprecated\s*\(/g;
+            const emptyCatchRegex = /catch\s*\([^\)]*\)\s*\{\s*\}/g;
+            const todoFixmeRegex = /TODO|FIXME/gi;
+            const wildcardImportRegex = /import\s+[^;]*\*\s*;/g;
+            const hardcodedCredsRegex = /(password\s*=|secret\s*=|api[_-]?key\s*=|['\"]AKIA[0-9A-Z]{16}['\"])/i;
+            const systemExitRegex = /System\.exit\s*\(/g;
+            const magicNumberRegex = /[^\w]([0-9]{2,}|[2-9])[^\w]/g;
+            const methodRegex = /(?:public|private|protected|static|\s)+[\w<>,\[\]]+\s+([a-zA-Z0-9_]+)\s*\([^\)]*\)\s*\{([\s\S]*?\n)\s*\}/g;
             for (const f of prFiles.data) {
               if (!f.filename.endsWith('.java') && !f.filename.endsWith('.kt')) continue;
               const contentResp = await github.rest.repos.getContent({
@@ -63,12 +75,73 @@ jobs:
                 const buff = Buffer.from(contentResp.data.content, contentResp.data.encoding || 'base64');
                 content = buff.toString('utf8');
               }
+              // Check for System.out.println
               if (content.includes('System.out.println')) {
                 violations.push(`Found System.out.println in ${f.filename}`);
               }
+              // Check for logger usage
+              if (!content.match(/LoggerFactory.getLogger|log\./)) {
+                violations.push(`No logger usage found in ${f.filename}`);
+              }
+              // Check for constants
+              if (!content.match(constantRegex)) {
+                violations.push(`No constants (static final) found in ${f.filename}`);
+              }
+              // Check for camelCase naming (simple heuristic)
+              let camelMatches = content.match(camelCaseRegex);
+              if (!camelMatches) {
+                violations.push(`No camelCase identifiers found in ${f.filename}`);
+              }
+              // Check for magic numbers (excluding 0, 1, -1)
+              let magicMatches = [...content.matchAll(magicNumberRegex)].filter(m => !['0','1','-1'].includes(m[1]));
+              if (magicMatches.length > 0) {
+                violations.push(`Possible magic numbers found in ${f.filename}: ${magicMatches.map(m=>m[1]).join(', ')}`);
+              }
+              // Check for Javadoc on public classes/methods
+              if (!content.match(javadocRegex)) {
+                violations.push(`No Javadoc comments found in ${f.filename}`);
+              }
+              // Check for public fields
+              let publicFields = [...content.matchAll(publicFieldRegex)].filter(m => !m[0].includes('class') && !m[0].includes('interface') && !m[0].includes('enum') && !m[0].includes('('));
+              if (publicFields.length > 0) {
+                violations.push(`Public fields found in ${f.filename}: ${publicFields.map(m=>m[0].trim()).join(', ')}`);
+              }
+              // Check for deprecated API usage
+              if (content.match(deprecatedRegex)) {
+                violations.push(`Deprecated API usage in ${f.filename}`);
+              }
+              // Check for empty catch blocks
+              if (content.match(emptyCatchRegex)) {
+                violations.push(`Empty catch block(s) found in ${f.filename}`);
+              }
+              // Check for TODO/FIXME
+              if (content.match(todoFixmeRegex)) {
+                violations.push(`TODO/FIXME comments found in ${f.filename}`);
+              }
+              // Check for wildcard imports
+              if (content.match(wildcardImportRegex)) {
+                violations.push(`Wildcard imports found in ${f.filename}`);
+              }
+              // Check for hardcoded credentials
+              if (content.match(hardcodedCredsRegex)) {
+                violations.push(`Possible hardcoded credentials/API keys in ${f.filename}`);
+              }
+              // Check for System.exit()
+              if (content.match(systemExitRegex)) {
+                violations.push(`System.exit() usage found in ${f.filename}`);
+              }
+              // Check for long methods (>50 lines)
+              let methodMatch;
+              while ((methodMatch = methodRegex.exec(content)) !== null) {
+                const methodBody = methodMatch[2] || '';
+                const lineCount = methodBody.split('\n').length;
+                if (lineCount > 50) {
+                  violations.push(`Method ${methodMatch[1]} in ${f.filename} exceeds 50 lines (${lineCount} lines)`);
+                }
+              }
             }
             const body = violations.length > 0
-              ? 'Automated reviewer found the following guideline issues:\n' + violations.map(v => '- ' + v).join('\n') + '\n\nPlease prefer slf4j or logger frameworks and follow coding_guidelines.md.'
+              ? 'Automated reviewer found the following guideline issues:\n' + violations.map(v => '- ' + v).join('\n') + '\n\nPlease prefer slf4j or logger frameworks, use constants, follow camelCase naming conventions, avoid magic numbers, add Javadoc, avoid public fields, avoid deprecated APIs, avoid empty catch blocks, avoid TODO/FIXME, avoid wildcard imports, avoid hardcoded credentials, avoid System.exit(), and keep methods concise. See coding_guidelines.md.'
               : 'Automated reviewer: No obvious guideline violations detected.';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
