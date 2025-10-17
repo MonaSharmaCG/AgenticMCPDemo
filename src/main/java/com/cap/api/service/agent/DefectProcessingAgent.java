@@ -109,14 +109,16 @@ public class DefectProcessingAgent {
                                 // Replace all % with \u0025 or enclose in double quotes if used in summary
                                 jql = jql.replace("%", "\\u0025");
                         }
-                        String searchUrl = jiraUrl + (jiraUrl.endsWith("/" ) ? "" : "/") + "rest/api/3/search/jql?jql=" + java.net.URLEncoder.encode(jql, java.nio.charset.StandardCharsets.UTF_8) + "&fields=summary,status,description,comment,created";
-            org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
-            org.springframework.http.ResponseEntity<String> response = restTemplate.exchange(
-                searchUrl,
-                org.springframework.http.HttpMethod.GET,
-                entity,
-                String.class
-            );
+                        // Prefer POST with JSON body to avoid passing JQL in the URL (prevents percent/encoding issues)
+                        String searchUrl = jiraUrl + (jiraUrl.endsWith("/") ? "" : "/") + "rest/api/3/search/jql";
+                        log.info("JIRA JQL raw: {}", jql);
+                        log.info("JIRA searchUrl: {}", searchUrl);
+                        headers.set("Content-Type", "application/json");
+                        java.util.Map<String, Object> body = new java.util.HashMap<>();
+                        body.put("jql", jql);
+                        body.put("fields", java.util.Arrays.asList("summary", "status", "description", "comment", "created"));
+                        org.springframework.http.HttpEntity<java.util.Map<String, Object>> requestEntity = new org.springframework.http.HttpEntity<>(body, headers);
+                        org.springframework.http.ResponseEntity<String> response = restTemplate.postForEntity(searchUrl, requestEntity, String.class);
             String jiraJson = response.getBody();
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
             com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(jiraJson);
