@@ -102,8 +102,8 @@ public class DefectProcessingAgent {
             // Restrict to project and created today to avoid unbounded JQL error
             // If using % in JQL, always quote it
             // Example: summary ~ "%bug%"
-                String today = java.time.LocalDate.now().toString();
-                String jql = "project=SCRUM AND created = '" + today + "'"; // Only tickets created exactly today
+              String today = java.time.LocalDate.now().toString();
+              String jql = "project=SCRUM"; // Poll all tickets, filter by created date in code
             // If you need to filter summary, use: summary ~ "\"%bug%\""
             // Example: String jql = "project=SCRUM AND created >= '" + today + "' AND summary ~ \"%bug%\"";
             // Use new JIRA endpoint as per Atlassian migration guide
@@ -116,12 +116,23 @@ public class DefectProcessingAgent {
                 String.class
             );
             String jiraJson = response.getBody();
-            String extracted = com.cap.api.service.AgenticClientUtil.extractStories(jiraJson);
-            for (String line : extracted.split("\n")) {
-                if (!line.trim().isEmpty()) {
-                    String issueKey = extractIssueKey(line);
-                    if (issueKey != null && !isProcessed(issueKey)) {
-                        bugs.add(line);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(jiraJson);
+            com.fasterxml.jackson.databind.JsonNode issues = root.path("issues");
+            // 'today' already defined above, remove duplicate
+            if (issues.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode issue : issues) {
+                    String created = issue.path("fields").path("created").asText("");
+                    if (created.startsWith(today)) {
+                        String key = issue.path("key").asText("");
+                        String summary = issue.path("fields").path("summary").asText("");
+                        String status = issue.path("fields").path("status").path("name").asText("");
+                        String description = issue.path("fields").path("description").asText("");
+                        String line = key + "|" + summary + "|" + status + "|" + description;
+                        String issueKey = extractIssueKey(line);
+                        if (issueKey != null && !isProcessed(issueKey)) {
+                            bugs.add(line);
+                        }
                     }
                 }
             }
