@@ -100,8 +100,12 @@ public class DefectProcessingAgent {
             org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
             // Fetch all ticket types, not just defects
             // Restrict to project and created today to avoid unbounded JQL error
+            // If using % in JQL, always quote it
+            // Example: summary ~ "%bug%"
             String today = java.time.LocalDate.now().toString();
-            String jql = "project=SCRUM AND created >= '" + today + "'";
+            String jql = "project=SCRUM AND created >= '" + today + "'"; // No % used here, but if you add summary or description filters, quote %
+            // If you need to filter summary, use: summary ~ "\"%bug%\""
+            // Example: String jql = "project=SCRUM AND created >= '" + today + "' AND summary ~ \"%bug%\"";
             // Use new JIRA endpoint as per Atlassian migration guide
             String searchUrl = jiraUrl + (jiraUrl.endsWith("/") ? "" : "/") + "rest/api/3/search/jql?jql=" + java.net.URLEncoder.encode(jql, java.nio.charset.StandardCharsets.UTF_8) + "&fields=summary,status,description,comment";
             org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
