@@ -102,7 +102,8 @@ public class DefectProcessingAgent {
             // Restrict to project and created today to avoid unbounded JQL error
             String today = java.time.LocalDate.now().toString();
             String jql = "project=SCRUM AND created >= '" + today + "'";
-            String searchUrl = jiraUrl + (jiraUrl.endsWith("/") ? "" : "/") + "rest/api/3/search?jql=" + java.net.URLEncoder.encode(jql, java.nio.charset.StandardCharsets.UTF_8) + "&fields=summary,status,description,comment";
+            // Use new JIRA endpoint as per Atlassian migration guide
+            String searchUrl = jiraUrl + (jiraUrl.endsWith("/") ? "" : "/") + "rest/api/3/search/jql?jql=" + java.net.URLEncoder.encode(jql, java.nio.charset.StandardCharsets.UTF_8) + "&fields=summary,status,description,comment";
             org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
             org.springframework.http.ResponseEntity<String> response = restTemplate.exchange(
                 searchUrl,
