@@ -43,6 +43,9 @@ public class DefectProcessingAgent {
     @Value("${azureopenai.deployment-name}")
     private String openAIDeploymentName;
 
+    @Value("${agent.autoProcess:false}")
+    private boolean agentAutoProcess;
+
     private String encodedAuth;
 
     @Autowired(required = false)
@@ -622,6 +625,19 @@ public class DefectProcessingAgent {
                 String issueKey = extractIssueKey(bug);
                 if (issueKey != null && !isProcessed(issueKey)) {
                     log.info("New JIRA ticket detected: {}", bug);
+                    // If autoProcess is enabled, trigger processing flow for new ticket
+                    if (agentAutoProcess && gitAgentService != null) {
+                        log.info("Auto-processing enabled: handling ticket {}", issueKey);
+                        String branchName = createBranchName(issueKey, bug);
+                        try {
+                            gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
+                            String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
+                            updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
+                            markProcessed(issueKey);
+                        } catch (Exception ex) {
+                            log.error("Auto-processing failed for {}: {}", issueKey, ex.getMessage(), ex);
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
