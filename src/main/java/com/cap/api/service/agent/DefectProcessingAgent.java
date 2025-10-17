@@ -109,7 +109,10 @@ public class DefectProcessingAgent {
             String extracted = com.cap.api.service.AgenticClientUtil.extractStories(jiraJson);
             for (String line : extracted.split("\n")) {
                 if (!line.trim().isEmpty()) {
-                    bugs.add(line);
+                    String issueKey = extractIssueKey(line);
+                    if (issueKey != null && !isProcessed(issueKey)) {
+                        bugs.add(line);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -523,15 +526,13 @@ public class DefectProcessingAgent {
      */
     public void processDefectsOnce() {
         List<String> bugs = fetchJiraBugs();
+        if (bugs.isEmpty()) {
+            log.info("No new JIRA tickets to process.");
+            return;
+        }
         java.util.List<String> newOrChangedBugs = new java.util.ArrayList<>();
         for (String bug : bugs) {
-            String issueKey = null;
-            if (bug != null && !bug.isEmpty()) {
-                String[] parts = bug.split("\\|");
-                if (parts.length > 0 && parts[0].matches("[A-Z]+-\\d+")) {
-                    issueKey = parts[0].trim();
-                }
-            }
+            String issueKey = extractIssueKey(bug);
             String suggestion = suggestFix(bug);
             if (issueKey != null) {
                 String lastSuggestion = lastBugSuggestions.get(issueKey);
