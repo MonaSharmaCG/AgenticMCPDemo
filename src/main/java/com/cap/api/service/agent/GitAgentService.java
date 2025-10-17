@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.annotation.PostConstruct;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Service
 public class GitAgentService {
@@ -33,21 +35,142 @@ public class GitAgentService {
     /**
      * Creates a branch from main, applies the fix, pushes, and creates a PR.
      */
-    public void createBranchFromMainAndApplyFix(String branchName, String bugDesc) {
+    public void createBranchFromMainAndApplyFix(String branchName, String bugDesc, String codeFix) {
         try {
             File repoDir = new File(".");
             runCommand(repoDir, "git", "checkout", "main");
             runCommand(repoDir, "git", "pull", "origin", "main");
             runCommand(repoDir, "git", "checkout", "-b", branchName);
-            // Apply fix for bugDesc (implement actual code change logic here)
-            // For demo, touch a file or log
+            // Apply fix for bugDesc: write codeFix to agent_generated/fixes/<branchName>/fix.txt
+            try {
+                if (codeFix != null && !codeFix.isBlank()) {
+                    Path outDir = Path.of("agent_generated", "fixes", branchName);
+                    Files.createDirectories(outDir);
+                    Path outFile = outDir.resolve("fix.txt");
+                    Files.writeString(outFile, codeFix);
+                }
+            } catch (Exception e) {
+                log.error("Failed to write code fix file: {}", e.getMessage(), e);
+            }
             runCommand(repoDir, "git", "add", ".");
             runCommand(repoDir, "git", "commit", "-m", "Fix for " + branchName);
             runCommand(repoDir, "git", "push", "-u", "origin", branchName);
+            // After pushing, create PR via GitHub API and post a summary comment
+            try {
+                if (githubToken != null && !githubToken.isBlank()) {
+                    String prTitle = "Automated fix: " + branchName;
+                    String prBody = "Agent-generated suggested fix. See agent_generated/fixes/" + branchName + "/fix.txt";
+                    String prUrl = createPrOnly(branchName, prTitle, prBody, "");
+                    log.info("Created PR: {}", prUrl == null ? "(no url)" : prUrl);
+                } else {
+                    log.warn("GitHub token not configured; skipping PR creation for branch {}", branchName);
+                }
+            } catch (Exception e) {
+                log.error("Failed to create PR: {}", e.getMessage(), e);
+            }
             // Create PR (reuse commitPushAndCreatePr logic or call GitHub API)
             // Optionally trigger GitHub Actions workflow if needed
         } catch (Exception e) {
             log.error("Failed to create branch and apply fix: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Create a PR for an existing branch and post a comment summarizing the agent's changes.
+     * Returns the PR html_url if successful.
+     */
+    public String createPrOnly(String branchName, String prTitle, String prBody, String reviewersCsv) throws Exception {
+        File repoDir = new File(".");
+        // derive remote url
+        ProcessBuilder rb = new ProcessBuilder("git", "config", "--get", "remote.origin.url");
+        rb.directory(repoDir);
+        Process pr = rb.start();
+        String remoteUrl;
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(pr.getInputStream()))) {
+            remoteUrl = r.readLine();
+        }
+        pr.waitFor();
+        if (remoteUrl == null) throw new RuntimeException("Could not determine remote.origin.url");
+        String owner = null, repo = null;
+        String path = remoteUrl;
+        if (path.endsWith(".git")) path = path.substring(0, path.length()-4);
+        if (path.contains("github.com")) {
+            if (path.startsWith("https://")) {
+                String[] parts = path.split("github.com/");
+                if (parts.length > 1) {
+                    String[] prt = parts[1].split("/");
+                    if (prt.length >= 2) { owner = prt[0]; repo = prt[1]; }
+                }
+            } else if (path.startsWith("git@")) {
+                String[] parts = path.split(":");
+                if (parts.length > 1) {
+                    String[] prt = parts[1].split("/");
+                    if (prt.length >= 2) { owner = prt[0]; repo = prt[1]; }
+                }
+            }
+        }
+        if (owner == null || repo == null) throw new RuntimeException("Could not parse owner/repo from remote url");
+
+        String prApi = String.format("https://api.github.com/repos/%s/%s/pulls", owner, repo);
+        String json = String.format("{\"title\":\"%s\",\"head\":\"%s\",\"base\":\"%s\",\"body\":\"%s\"}", escape(prTitle), escape(branchName), escape("main"), escape(prBody));
+        URL url = new URL(prApi);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Authorization", "token " + githubToken);
+        conn.setRequestProperty("Accept", "application/vnd.github+json");
+        conn.setDoOutput(true);
+        conn.getOutputStream().write(json.getBytes(StandardCharsets.UTF_8));
+        int code = conn.getResponseCode();
+        StringBuilder resp = new StringBuilder();
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(code >= 200 && code < 300 ? conn.getInputStream() : conn.getErrorStream()))) {
+            String ln;
+            while ((ln = r.readLine()) != null) resp.append(ln).append('\n');
+        }
+        ObjectMapper om = new ObjectMapper();
+        try {
+            JsonNode root = om.readTree(resp.toString());
+            String prUrl = root.has("html_url") ? root.get("html_url").asText() : null;
+            String prNum = root.has("number") ? root.get("number").asText() : null;
+            // request reviewers if provided
+            if (reviewersCsv != null && !reviewersCsv.isBlank() && prNum != null) {
+                try {
+                    String reviewersApi = String.format("https://api.github.com/repos/%s/%s/pulls/%s/requested_reviewers", owner, repo, prNum);
+                    String revJson = String.format("{\"reviewers\":[%s]}", joinReviewers(reviewersCsv));
+                    URL rurl = new URL(reviewersApi);
+                    HttpURLConnection rc2 = (HttpURLConnection) rurl.openConnection();
+                    rc2.setRequestMethod("POST");
+                    rc2.setRequestProperty("Authorization", "token " + githubToken);
+                    rc2.setRequestProperty("Accept", "application/vnd.github+json");
+                    rc2.setDoOutput(true);
+                    rc2.getOutputStream().write(revJson.getBytes(StandardCharsets.UTF_8));
+                    int rcCode = rc2.getResponseCode();
+                    log.info("Requested reviewers; HTTP code: {}", rcCode);
+                } catch (Exception ex) {
+                    log.error("Failed to request reviewers: {}", ex.getMessage(), ex);
+                }
+            }
+            // Post summary comment to PR (issues API)
+            if (prNum != null) {
+                try {
+                    String commentApi = String.format("https://api.github.com/repos/%s/%s/issues/%s/comments", owner, repo, prNum);
+                    String commentJson = String.format("{\"body\":\"%s\"}", escape("Agent applied suggested fix. See: " + prBody));
+                    URL curl = new URL(commentApi);
+                    HttpURLConnection cc = (HttpURLConnection) curl.openConnection();
+                    cc.setRequestMethod("POST");
+                    cc.setRequestProperty("Authorization", "token " + githubToken);
+                    cc.setRequestProperty("Accept", "application/vnd.github+json");
+                    cc.setDoOutput(true);
+                    cc.getOutputStream().write(commentJson.getBytes(StandardCharsets.UTF_8));
+                    int ccode = cc.getResponseCode();
+                    log.info("Posted PR comment; HTTP code: {}", ccode);
+                } catch (Exception ex) {
+                    log.error("Failed to post PR comment: {}", ex.getMessage(), ex);
+                }
+            }
+            return prUrl;
+        } catch (Exception ex) {
+            log.error("Failed to parse PR response: {}", ex.getMessage());
+            return null;
         }
     }
 
