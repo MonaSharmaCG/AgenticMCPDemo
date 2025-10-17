@@ -97,7 +97,8 @@ public class DefectProcessingAgent {
             headers.set("Authorization", "Basic " + encodedAuth);
             headers.set("Accept", "application/json");
             org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
-            String searchUrl = jiraUrl + (jiraUrl.endsWith("/") ? "" : "/") + "rest/api/3/search/jql?jql=type=Bug+ORDER+BY+updated+DESC&fields=summary,status,description,comment";
+            // Fetch all ticket types, not just defects
+            String searchUrl = jiraUrl + (jiraUrl.endsWith("/") ? "" : "/") + "rest/api/3/search/jql?jql=ORDER+BY+updated+DESC&fields=summary,status,description,comment";
             org.springframework.http.HttpEntity<String> entity = new org.springframework.http.HttpEntity<>(headers);
             org.springframework.http.ResponseEntity<String> response = restTemplate.exchange(
                 searchUrl,
