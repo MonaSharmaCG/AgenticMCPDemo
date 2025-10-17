@@ -509,9 +509,11 @@ public class DefectProcessingAgent {
         analyzeBugs(bugs);
         for (String bug : bugs) {
             String issueKey = extractIssueKey(bug);
-            if (issueKey != null && !isProcessed(issueKey)) {
-                String branchName = createBranchName(issueKey, bug);
-                gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
+                if (issueKey != null && !isProcessed(issueKey)) {
+                    String branchName = createBranchName(issueKey, bug);
+                    // generate a code fix suggestion (may be short) and pass it to GitAgentService so the PR contains a visible change
+                    String codeFix = generateCodeFixWithLLM(bug);
+                    gitAgentService.createBranchFromMainAndApplyFix(branchName, bug, codeFix);
                 // After fix and PR, comment PR link back to Jira
                 String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
                 updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
@@ -626,11 +628,12 @@ public class DefectProcessingAgent {
                 if (issueKey != null && !isProcessed(issueKey)) {
                     log.info("New JIRA ticket detected: {}", bug);
                     // If autoProcess is enabled, trigger processing flow for new ticket
-                    if (agentAutoProcess && gitAgentService != null) {
+                        if (agentAutoProcess && gitAgentService != null) {
                         log.info("Auto-processing enabled: handling ticket {}", issueKey);
                         String branchName = createBranchName(issueKey, bug);
                         try {
-                            gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
+                            String codeFix = generateCodeFixWithLLM(bug);
+                            gitAgentService.createBranchFromMainAndApplyFix(branchName, bug, codeFix);
                             String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
                             updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
                             markProcessed(issueKey);
@@ -654,7 +657,8 @@ public class DefectProcessingAgent {
             String key = extractIssueKey(bug);
             if (key != null && key.equals(issueKey) && !isProcessed(key)) {
                 String branchName = createBranchName(key, bug);
-                gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
+                String codeFix = generateCodeFixWithLLM(bug);
+                gitAgentService.createBranchFromMainAndApplyFix(branchName, bug, codeFix);
                 String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
                 updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
                 markProcessed(key);
