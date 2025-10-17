@@ -148,10 +148,31 @@ public class DefectProcessingAgent {
     /**
      * Logs suggested fixes for bugs and prepares update comments for JIRA.
      */
+    @Autowired(required = false)
+    private PromptController promptController;
+
     public void fixBugs(List<String> bugs) {
         for (String bug : bugs) {
-            String suggestion = suggestFix(bug);
-            String codeFix = generateCodeFixWithLLM(bug);
+            String bugForFix = bug;
+            // If bug description is lengthy, summarize first
+            if (bug != null && bug.length() > 400) {
+                String summary = summarizeBugWithLLM(bug);
+                if (summary != null && !summary.isBlank()) {
+                    log.info("LLM summary for bug: {}\nSummary: {}", bug, summary);
+                    bugForFix = summary;
+                }
+            }
+            // Check for custom prompt from REST API
+            String customPrompt = null;
+            if (promptController != null) {
+                customPrompt = promptController.consumePrompt();
+            }
+            if (customPrompt != null && !customPrompt.isBlank()) {
+                log.info("Using custom prompt for bug {}: {}", bug, customPrompt);
+                bugForFix = customPrompt;
+            }
+            String suggestion = suggestFix(bugForFix);
+            String codeFix = generateCodeFixWithLLM(bugForFix);
             String logEntry = "Suggested fix for bug: " + bug + "\nLLM suggestion: " + suggestion + "\nLLM code fix:\n" + codeFix + "\n";
             log.info(logEntry);
             // Log to defect_agent_log.txt
@@ -171,7 +192,7 @@ public class DefectProcessingAgent {
                 // Simulate waiting for user input (in real app, this would be an async prompt/UI)
                 String userClarification = waitForUserClarification(bug);
                 if (userClarification != null && !userClarification.isBlank()) {
-                    codeFix = generateCodeFixWithLLM(bug + "\nUser clarification: " + userClarification);
+                    codeFix = generateCodeFixWithLLM(bugForFix + "\nUser clarification: " + userClarification);
                 } else {
                     log.info("No user clarification provided. Skipping code update for bug: {}", bug);
                     continue;
@@ -195,6 +216,17 @@ public class DefectProcessingAgent {
             // Update JIRA with the suggestion as a comment
             updateJiraWithComment(bug, suggestion + "\nCode fix applied to codebase.\n" + codeFix);
         }
+    }
+
+    /**
+     * Uses LLM to summarize a lengthy bug description in 1-2 lines.
+     */
+    private String summarizeBugWithLLM(String bugDescription) {
+        String summary = callOpenAIChatCompletion(bugDescription, "You are an expert Java developer. Summarize the following defect or ticket description in 1-2 concise lines, focusing on the main technical problem and context only. Do not include greetings or extra commentary.");
+        if (summary != null && !summary.isBlank()) {
+            return summary;
+        }
+        return bugDescription;
     }
 
     /**
