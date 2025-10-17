@@ -493,8 +493,8 @@ public class DefectProcessingAgent {
         }
 
     private String createBranchName(String issueKey, String bugDesc) {
-        String shortDesc = bugDesc.length() > 20 ? bugDesc.substring(0, 20).replaceAll("[^a-zA-Z0-9]", "-") : bugDesc.replaceAll("[^a-zA-Z0-9]", "-");
-        return "fix/" + issueKey + "-" + shortDesc;
+    // Updated to use defect/<JIRA-ticket-number>
+    return "defect/" + issueKey;
     }
 
     private String extractIssueKey(String bugDesc) {
@@ -582,15 +582,42 @@ public class DefectProcessingAgent {
     }
 
     /**
-     * Scheduled poller that runs every 10 seconds and delegates to processDefectsOnce.
-     * The fixedDelay ensures we wait 10s after the completion of the last run.
+     * Scheduled poller that runs every 10 seconds and updates the list of new tickets only.
+     * No processing or commenting is done here.
      */
     @Scheduled(fixedDelayString = "10000")
     public void pollJiraScheduled() {
         try {
-            processDefectsOnce();
+            List<String> bugs = fetchJiraBugs();
+            // Just log new tickets for now, do not process
+            for (String bug : bugs) {
+                String issueKey = extractIssueKey(bug);
+                if (issueKey != null && !isProcessed(issueKey)) {
+                    log.info("New JIRA ticket detected: {}", bug);
+                }
+            }
         } catch (Exception e) {
-            log.error("Scheduled defect processing error: {}", e.getMessage(), e);
+            log.error("Scheduled JIRA polling error: {}", e.getMessage(), e);
         }
+    }
+
+    /**
+     * Processes a specific ticket by issue key, only when triggered by API.
+     */
+    public void processDefectByIssueKey(String issueKey) {
+        List<String> bugs = fetchJiraBugs();
+        for (String bug : bugs) {
+            String key = extractIssueKey(bug);
+            if (key != null && key.equals(issueKey) && !isProcessed(key)) {
+                String branchName = "defect/" + key;
+                gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
+                String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
+                updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
+                markProcessed(key);
+                log.info("Processed defect for JIRA issue {}", key);
+                return;
+            }
+        }
+        log.warn("No unprocessed ticket found for issue key: {}", issueKey);
     }
 }
