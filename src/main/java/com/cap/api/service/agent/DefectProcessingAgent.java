@@ -52,6 +52,7 @@ public class DefectProcessingAgent {
     private String githubToken;
 
     private static final String PROCESSED_ISSUES_FILE = "agent_generated/processed_issues.txt";
+    // Store as <issueKey>:<yyyyMMdd>
     private Set<String> processedIssues = new HashSet<>();
 
     @PostConstruct
@@ -494,8 +495,9 @@ public class DefectProcessingAgent {
         }
 
     private String createBranchName(String issueKey, String bugDesc) {
-    // Updated to use defect/<JIRA-ticket-number>
-    return "defect/" + issueKey;
+        // Use defect/<JIRA-ticket-number>-<yyyyMMdd> for uniqueness per day
+        String date = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+        return "defect/" + issueKey + "-" + date;
     }
 
     private String extractIssueKey(String bugDesc) {
@@ -508,11 +510,13 @@ public class DefectProcessingAgent {
     }
 
     private boolean isProcessed(String issueKey) {
-        return processedIssues.contains(issueKey);
+        String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+        return processedIssues.contains(issueKey + ":" + today);
     }
 
     private void markProcessed(String issueKey) {
-        processedIssues.add(issueKey);
+        String today = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE);
+        processedIssues.add(issueKey + ":" + today);
         try {
             Path path = Path.of(PROCESSED_ISSUES_FILE);
             java.nio.file.Files.createDirectories(path.getParent());
@@ -610,7 +614,7 @@ public class DefectProcessingAgent {
         for (String bug : bugs) {
             String key = extractIssueKey(bug);
             if (key != null && key.equals(issueKey) && !isProcessed(key)) {
-                String branchName = "defect/" + key;
+                String branchName = createBranchName(key, bug);
                 gitAgentService.createBranchFromMainAndApplyFix(branchName, bug);
                 String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
                 updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
