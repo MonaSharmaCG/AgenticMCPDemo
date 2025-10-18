@@ -516,7 +516,9 @@ public class DefectProcessingAgent {
                     gitAgentService.createBranchFromMainAndApplyFix(branchName, bug, codeFix);
                 // After fix and PR, comment PR link back to Jira
                 String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
-                updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
+                String suggestion = suggestFix(bug);
+                String comment = "Code fix done and PR raised: " + prUrl + "\n\nAgent suggestion:\n" + suggestion;
+                updateJiraWithComment(bug, comment);
                 markProcessed(issueKey);
             }
         }
@@ -599,7 +601,9 @@ public class DefectProcessingAgent {
                             // After PR creation, comment PR link back to Jira for each bug
                             for (String bug : newOrChangedBugs) {
                                 String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branch;
-                                updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
+                                String suggestion = suggestFix(bug);
+                                String comment = "Code fix done and PR raised: " + prUrl + "\n\nAgent suggestion:\n" + suggestion;
+                                updateJiraWithComment(bug, comment);
                             }
                         } catch (Exception ex) {
                             log.error("Failed to push/create PR: {}", ex.getMessage(), ex);
@@ -635,7 +639,9 @@ public class DefectProcessingAgent {
                             String codeFix = generateCodeFixWithLLM(bug);
                             gitAgentService.createBranchFromMainAndApplyFix(branchName, bug, codeFix);
                             String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
-                            updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
+                            String suggestion = suggestFix(bug);
+                            String comment = "Code fix done and PR raised: " + prUrl + "\n\nAgent suggestion:\n" + suggestion;
+                            updateJiraWithComment(bug, comment);
                             markProcessed(issueKey);
                         } catch (Exception ex) {
                             log.error("Auto-processing failed for {}: {}", issueKey, ex.getMessage(), ex);
@@ -660,7 +666,9 @@ public class DefectProcessingAgent {
                 String codeFix = generateCodeFixWithLLM(bug);
                 gitAgentService.createBranchFromMainAndApplyFix(branchName, bug, codeFix);
                 String prUrl = "https://github.com/MonaSharmaCG/AgenticMCPDemo/pull/new/" + branchName;
-                updateJiraWithComment(bug, "Code fix done and PR raised: " + prUrl);
+                String suggestion = suggestFix(bug);
+                String comment = "Code fix done and PR raised: " + prUrl + "\n\nAgent suggestion:\n" + suggestion;
+                updateJiraWithComment(bug, comment);
                 markProcessed(key);
                 log.info("Processed defect for JIRA issue {}", key);
                 return;
