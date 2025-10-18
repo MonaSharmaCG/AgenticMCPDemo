@@ -245,7 +245,7 @@ public class DefectProcessingAgent {
                 log.error("Failed to write code fix: {}", e.getMessage(), e);
             }
             // Update JIRA with the suggestion as a comment
-            updateJiraWithComment(bug, suggestion + "\nCode fix applied to codebase.\n" + codeFix);
+            updateJiraWithComment(bug, "[agenticBot] " + suggestion + "\nCode fix applied to codebase.\n" + codeFix);
         }
     }
 

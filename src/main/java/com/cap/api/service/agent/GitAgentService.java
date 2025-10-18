@@ -153,7 +153,7 @@ public class GitAgentService {
             if (prNum != null) {
                 try {
                     String commentApi = String.format("https://api.github.com/repos/%s/%s/issues/%s/comments", owner, repo, prNum);
-                    String commentJson = String.format("{\"body\":\"%s\"}", escape("Agent applied suggested fix. See: " + prBody));
+                    String commentJson = String.format("{\"body\":\"%s\"}", escape("[agenticBot] Agent applied suggested fix. See: " + prBody));
                     URL curl = new URL(commentApi);
                     HttpURLConnection cc = (HttpURLConnection) curl.openConnection();
                     cc.setRequestMethod("POST");

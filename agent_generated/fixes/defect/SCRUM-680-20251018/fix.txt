@@ -1,0 +1,64 @@
+```java
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+public class DefectActionControllerTest {
+
+    @Test
+    public void testGetDefectById() {
+        // Arrange
+        DefectActionController controller = new DefectActionController();
+        DefectService defectService = mock(DefectService.class);
+        controller.setDefectService(defectService);
+
+        Defect defect = new Defect(1, "Sample Defect", "Open");
+        when(defectService.getDefectById(1)).thenReturn(defect);
+
+        // Act
+        ResponseEntity<Defect> response = controller.getDefectById(1);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(defect, response.getBody());
+    }
+
+    @Test
+    public void testGetDefectById_NotFound() {
+        // Arrange
+        DefectActionController controller = new DefectActionController();
+        DefectService defectService = mock(DefectService.class);
+        controller.setDefectService(defectService);
+
+        when(defectService.getDefectById(99)).thenReturn(null);
+
+        // Act
+        ResponseEntity<Defect> response = controller.getDefectById(99);
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    public void testUpdateDefectStatus() {
+        // Arrange
+        DefectActionController controller = new DefectActionController();
+        DefectService defectService = mock(DefectService.class);
+        controller.setDefectService(defectService);
+
+        Defect updatedDefect = new Defect(1, "Sample Defect", "Closed");
+        when(defectService.updateDefectStatus(1, "Closed")).thenReturn(updatedDefect);
+
+        // Act
+        ResponseEntity<Defect> response = controller.updateDefectStatus(1, "Closed");
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(updatedDefect, response.getBody());
+    }
+}
+```

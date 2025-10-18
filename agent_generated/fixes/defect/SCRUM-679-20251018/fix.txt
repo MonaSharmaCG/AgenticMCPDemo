@@ -1,0 +1,64 @@
+```java
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+
+public class DefectActionControllerTest {
+
+    private MockMvc mockMvc;
+
+    @Mock
+    private DefectService defectService;
+
+    @InjectMocks
+    private DefectActionController defectActionController;
+
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    @Test
+    public void testGetDefectById() throws Exception {
+        mockMvc = MockMvcBuilders.standaloneSetup(defectActionController).build();
+
+        when(defectService.getDefectById(1L)).thenReturn(new Defect(1L, "Sample Defect", "Open"));
+
+        mockMvc.perform(get("/defect/1")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Sample Defect"))
+                .andExpect(jsonPath("$.status").value("Open"));
+
+        verify(defectService, times(1)).getDefectById(1L);
+    }
+
+    @Test
+    public void testCreateDefect() throws Exception {
+        mockMvc = MockMvcBuilders.standaloneSetup(defectActionController).build();
+
+        String defectJson = "{\"name\": \"New Defect\", \"status\": \"Open\"}";
+        Defect mockDefect = new Defect(2L, "New Defect", "Open");
+
+        when(defectService.createDefect(any(Defect.class))).thenReturn(mockDefect);
+
+        mockMvc.perform(post("/defect")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(defectJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(2))
+                .andExpect(jsonPath("$.name").value("New Defect"))
+                .andExpect(jsonPath("$.status").value("Open"));
+
+        verify(defectService, times(1)).createDefect(any(Defect.class));
+    }
+}
+```
