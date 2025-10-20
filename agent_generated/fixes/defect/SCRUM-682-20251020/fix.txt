@@ -1,0 +1,48 @@
+```java
+import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class GitHubApiControllerTest {
+
+    private final GitHubService gitHubService = mock(GitHubService.class);
+    private final GitHubApiController gitHubApiController = new GitHubApiController(gitHubService);
+
+    @Test
+    void testGetRepositoryDetails() {
+        // Arrange
+        String repoName = "test-repo";
+        RepositoryDetails mockResponse = new RepositoryDetails("test-repo", "A test repository", "https://github.com/test/test-repo");
+        when(gitHubService.getRepositoryDetails(repoName)).thenReturn(mockResponse);
+        
+        // Act
+        ResponseEntity<RepositoryDetails> response = gitHubApiController.getRepositoryDetails(repoName);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("test-repo", response.getBody().getName());
+        assertEquals("A test repository", response.getBody().getDescription());
+        assertEquals("https://github.com/test/test-repo", response.getBody().getUrl());
+        
+        verify(gitHubService, times(1)).getRepositoryDetails(repoName);
+    }
+
+    @Test
+    void testGetRepositoryDetails_NotFound() {
+        // Arrange
+        String repoName = "non-existent-repo";
+        when(gitHubService.getRepositoryDetails(repoName)).thenReturn(null);
+        
+        // Act
+        ResponseEntity<RepositoryDetails> response = gitHubApiController.getRepositoryDetails(repoName);
+        
+        // Assert
+        assertNotNull(response);
+        assertEquals(404, response.getStatusCodeValue());
+        
+        verify(gitHubService, times(1)).getRepositoryDetails(repoName);
+    }
+}
+```
