@@ -1,0 +1,42 @@
+```java
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+
+@WebMvcTest(GithubOAuthController.class)
+public class GithubOAuthControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    public void testAuthenticate() throws Exception {
+        mockMvc.perform(get("/github/authenticate")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Authentication successful"));
+    }
+
+    @Test
+    public void testCallback() throws Exception {
+        mockMvc.perform(get("/github/callback")
+                .param("code", "testCode")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Callback received"));
+    }
+
+    @Test
+    public void testCallbackFailure() throws Exception {
+        mockMvc.perform(get("/github/callback")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+}
+```
