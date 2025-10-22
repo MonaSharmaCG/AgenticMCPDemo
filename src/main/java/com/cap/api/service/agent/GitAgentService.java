@@ -4,6 +4,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import com.cap.api.service.agent.NotificationAgent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
@@ -20,6 +23,9 @@ import java.nio.file.Path;
 public class GitAgentService {
     @Value("${github.token:}")
     private String githubToken;
+
+    @Autowired(required = false)
+    private NotificationAgent notificationAgent;
 
     private static final Logger log = LoggerFactory.getLogger(GitAgentService.class);
 
@@ -62,6 +68,12 @@ public class GitAgentService {
                     String prBody = "Agent-generated suggested fix. See agent_generated/fixes/" + branchName + "/fix.txt";
                     String prUrl = createPrOnly(branchName, prTitle, prBody, "");
                     log.info("Created PR: {}", prUrl == null ? "(no url)" : prUrl);
+                    // Notify DLs after PR creation
+                    if (notificationAgent != null) {
+                        notificationAgent.notifyDLs("Automated PR created: " + prTitle);
+                    } else {
+                        log.info("NotificationAgent not available. PR: {}", prTitle);
+                    }
                 } else {
                     log.warn("GitHub token not configured; skipping PR creation for branch {}", branchName);
                 }

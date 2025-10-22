@@ -1,0 +1,20 @@
+```java
+public boolean canApproveClaim(User user) {
+    int unpaidInvoices = invoiceService.getUnpaidInvoicesCountByUser(user.getId());
+    return unpaidInvoices < 2;
+}
+
+// Updated approve claim logic
+public boolean approveClaim(Claim claim) {
+    User user = claim.getUser();
+    if (canApproveClaim(user)) {
+        claim.setStatus(ClaimStatus.APPROVED);
+        claimService.updateClaim(claim);
+        return true;
+    } else {
+        claim.setStatus(ClaimStatus.REJECTED);
+        claimService.updateClaim(claim);
+        return false;
+    }
+}
+```

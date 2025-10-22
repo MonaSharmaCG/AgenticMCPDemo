@@ -18,6 +18,10 @@ import com.cap.api.service.agent.GitAgentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import com.cap.api.service.agent.AgentChecklist;
+import com.cap.api.service.agent.NotificationAgent;
+
 /**
  * Autonomous agent for processing JIRA defects and fixing application bugs.
  */
@@ -51,6 +55,9 @@ public class DefectProcessingAgent {
     @Autowired(required = false)
     private GitAgentService gitAgentService;
 
+    @Autowired(required = false)
+    private NotificationAgent notificationAgent;
+
     @Value("${github.token:}")
     private String githubToken;
 
@@ -58,13 +65,48 @@ public class DefectProcessingAgent {
     // Store as <issueKey>:<yyyyMMdd>
     private Set<String> processedIssues = new HashSet<>();
 
+    // Checklist template for agent actions
+    private AgentChecklist checklist = new AgentChecklist();
+
+    private void setupChecklistTemplate() {
+        checklist.addTask("Fetch new JIRA issues");
+        checklist.addTask("Analyze defect and suggest fix");
+        checklist.addTask("Apply code fix and commit");
+        checklist.addTask("Create PR and notify DLs");
+    }
+
+    private void markChecklistCompleted(int index) {
+        checklist.markTaskCompleted(index);
+    }
+
+    private void markChecklistUserInputPending(int index) {
+        checklist.markTaskUserInputPending(index);
+    }
+
+    private void notifyDLs(String actionSummary) {
+        if (notificationAgent != null) {
+            notificationAgent.notifyDLs(actionSummary);
+        } else {
+            log.info("NotificationAgent not available. Action: {}", actionSummary);
+        }
+    }
+
     @PostConstruct
     public void init() {
+        setupChecklistTemplate();
         if (jiraEmail != null && jiraApiToken != null) {
             String auth = jiraEmail + ":" + jiraApiToken;
             encodedAuth = java.util.Base64.getEncoder().encodeToString(auth.getBytes());
         }
         loadProcessedIssues();
+    }
+
+    // Example usage after automated action:
+    public void processDefectAndNotify(String issueKey, String actionSummary) {
+        // ...existing defect processing logic...
+        markChecklistCompleted(2); // e.g., code fix applied
+        notifyDLs("Automated action for issue " + issueKey + ": " + actionSummary);
+        markChecklistCompleted(3); // PR created and DLs notified
     }
 
     /**
