@@ -1,0 +1,15 @@
+```java
+public boolean approveClaim(Claim claim) {
+    // Removing the check for unpaid invoices as per the update
+    if (claim == null || claim.getStatus() != ClaimStatus.PENDING) {
+        return false;
+    }
+    
+    // Proceed with approving the claim logic
+    claim.setStatus(ClaimStatus.APPROVED);
+    claim.setApprovalDate(LocalDate.now());
+    claimService.updateClaim(claim);
+
+    return true;
+}
+```
